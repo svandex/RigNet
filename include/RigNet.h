@@ -1,14 +1,19 @@
 #pragma once
 
-#ifndef ___RIGNET_H___
-#define ___RIGNET_H___
-#endif
-
 #include <string>
 #include <typeinfo>
 
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
+
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/reader.h>
+#include <rapidjson/writer.h>
+
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+
+#include "mysqlx/xdevapi.h"
 
 namespace tv
 {
@@ -26,6 +31,7 @@ public:
   int SimensPLCNumber = 0;
   std::string addr_plc;
   std::string addr_nic;
+  std::string addr_mysql;
 };
 
 /*
@@ -92,3 +98,8 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 
 void on_message(server *s, websocketpp::connection_hdl hdl, server::message_ptr msg);
+
+//dispatch list
+std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg);
+std::string rignet_plc(server *s, const rapidjson::Document &&json_msg);
+std::string rignet_nicard(server *s, const rapidjson::Document &&json_msg);
