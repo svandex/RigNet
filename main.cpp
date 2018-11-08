@@ -23,8 +23,6 @@ Date: 2018-10-30
 #include "NICard.h"
 #include "SimensPLC.h"
 
-#include <mysqlx/xdevapi.h>
-
 /*
 TWo Universal buffer that hold data, Two threads that writes to buffer and writes to mysql database
 
@@ -36,10 +34,11 @@ Cannot write to database directly becasue database response requires time
 
 int main(void)
 {
-    //Load Setting from setting.json in project root path
     tv::Setting tvs;
+    //Load Setting from setting.json in project root path
     tvs.addr_plc = "192.168.0.1";
-    tvs.addr_nic = "192.168.0.104::3580";
+    tvs.addr_nic = "192.168.0.101::3580";
+    tvs.addr_mysql = "localhost";
     if (!tvs.LoadSetting())
     {
         std::cout << "Load Setting.json failed!" << std::endl;
@@ -68,11 +67,10 @@ int main(void)
         std::printf("TCPIP Hostname: %s \n", intfdesc);
 
         //protocal
-        nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_IO_PROT, VI_PROT_4882_STRS);
+        //nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_IO_PROT, VI_PROT_4882_STRS);
         ViUInt16 t_prot = 0;
         nic.run(tv::MakeRigFunctor_s(viGetAttribute), nic.m_instr, VI_ATTR_IO_PROT, &t_prot);
         std::cout << "Protocal: " << t_prot << std::endl;
-        ;
 
         //Attribute Setting
         nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_TMO_VALUE, 2000);
@@ -82,19 +80,13 @@ int main(void)
 
         //Commands
         nic.run(tv::MakeRigFunctor_s(viClear), nic.m_instr);
-
-        nic.run(tv::MakeRigFunctor_s(viWrite), nic.m_instr, (ViConstBuf) "*TST?", 6, &nic.m_ret_cnt);
-        std::cout << "Write Count: " << nic.m_ret_cnt << std::endl;
-        nic.run(tv::MakeRigFunctor_s(viRead), nic.m_instr, nic.m_buffer, MAX_CNT, &nic.m_ret_cnt);
-        std::cout << "Read Count: " << nic.m_ret_cnt << std::endl;
-        std::printf("Result: %s\n", nic.m_buffer);
-
-        /*
-        nic.run(tv::MakeRigFunctor_s(viWrite), nic.m_instr, (ViConstBuf) "*STB?", 5, &nic.m_ret_cnt);
-        ViUInt16 t_status;
-        nic.run(tv::MakeRigFunctor_s(viReadSTB),nic.m_instr,&t_status);
-        std::cout<<"t_status: "<<t_status<<std::endl;
-*/
+        //nic.run(tv::MakeRigFunctor_s(viWrite), nic.m_instr, (ViConstBuf) "READ:WAVFM:CH1\n", 14, &nic.m_ret_cnt);
+        nic.run(tv::MakeRigFunctor_s(viWrite), nic.m_instr, (ViConstBuf) "*IDN?\n", 6, &nic.m_ret_cnt);
+        std::cout << "Write COmpleted." << std::endl;
+        ViByte buf[1024];
+        nic.run(tv::MakeRigFunctor_s(viAssertTrigger),nic.m_instr,VI_TRIG_PROT_DEFAULT);
+        nic.run(tv::MakeRigFunctor_s(viRead), nic.m_instr, buf, 1024, &nic.m_ret_cnt);
+        std::cout << "nicard: " << buf << std::endl;
     }
     catch (std::exception &e)
     {
@@ -107,12 +99,8 @@ int main(void)
     try
     {
         server ts;
-        ts.set_open_handshake_timeout(1000000);
-        ts.set_max_http_body_size(64000000);
-
-        /*
-on_message() responsible for inter-communication with mysql database and web browser
-*/
+        //ts.set_open_handshake_timeout(1000000);
+        //ts.set_max_http_body_size(64000000);
         //ts.set_http_handler(bind(&on_http, &ts, ::_1));
         ts.set_message_handler(bind(&on_message, &ts, ::_1, ::_2));
 
@@ -131,12 +119,10 @@ on_message() responsible for inter-communication with mysql database and web bro
     }
     catch (websocketpp::exception &e)
     {
-        std::wcout << "websocketpp: " << std::endl
-                   << e.what() << std::endl;
+        std::wcout << "websocketpp: " << e.what() << std::endl;
     }
     catch (std::exception &e)
     {
-        std::wcout << "std: " << std::endl
-                   << e.what() << std::endl;
+        std::wcout << "std: " << e.what() << std::endl;
     }
 }

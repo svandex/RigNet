@@ -11,6 +11,7 @@ NICard::NICard(const char *remAddr)
     }
 
     std::string res = "TCPIP0::" + std::string(remAddr) + "::SOCKET";
+    //std::string res = "ASRL0::" + std::string(remAddr) + "::INSTR";
     //std::string res = "TCPIP::" + std::string(remAddr) + "::INSTR";
 
     run(tv::MakeRigFunctor_s(viOpen), *NICard::defaultRM, res.c_str(), VI_NULL, VI_NULL, &m_instr);
