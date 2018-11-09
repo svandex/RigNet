@@ -1,3 +1,5 @@
+#pragma once
+
 #include "visa.h"
 #include "RigNet.h"
 

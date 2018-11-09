@@ -32,5 +32,8 @@ ${mysql_wrapper_dir}/lib64
 ${snap_wrapper_dir}/lib64
 ${snap_wrapper_dir}/build/bin/x86_64-linux/)
 
-add_executable(rignet src/RigNet.cpp src/NICard.cpp src/SimensPLC.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
+add_executable(rignet src/RigNet.cpp src/NICard.cpp src/SimensPLC.cpp src/sub_test.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
 target_link_libraries(rignet visa pthread snap7 boost_system mysqlcppconn8 nidaqmx)
+
+add_executable(wss test.cpp src/RigNet.cpp)
+target_link_libraries(wss mysqlcppconn8 boost_system)

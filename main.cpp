@@ -9,19 +9,9 @@ Date: 2018-10-30
 
 #include <iostream>
 
-/*
-1. Setting Class
-2. Initialize websocket server
-*/
-//#include "RigNet.h"
-
-/*
-1. NICard Class
-2. SimensPLC Class
-*/
-
 #include "NICard.h"
 #include "SimensPLC.h"
+#include "sub_test.h"
 
 /*
 TWo Universal buffer that hold data, Two threads that writes to buffer and writes to mysql database
@@ -59,34 +49,8 @@ int main(void)
     try
     {
         NICard nic(tvs.addr_nic.c_str());
-        ViChar intfdesc[VI_FIND_BUFLEN];
-        nic.run(tv::MakeRigFunctor_s(viGetAttribute), nic.m_instr, VI_ATTR_INTF_INST_NAME, intfdesc);
-        std::printf("Interface Description:%s \n", intfdesc);
-
-        nic.run(tv::MakeRigFunctor_s(viGetAttribute), nic.m_instr, VI_ATTR_TCPIP_HOSTNAME, intfdesc);
-        std::printf("TCPIP Hostname: %s \n", intfdesc);
-
-        //protocal
-        //nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_IO_PROT, VI_PROT_4882_STRS);
-        ViUInt16 t_prot = 0;
-        nic.run(tv::MakeRigFunctor_s(viGetAttribute), nic.m_instr, VI_ATTR_IO_PROT, &t_prot);
-        std::cout << "Protocal: " << t_prot << std::endl;
-
-        //Attribute Setting
-        nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_TMO_VALUE, 2000);
-        //nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_TERMCHAR, 0x0D);
-        nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_TERMCHAR_EN, VI_TRUE);
-        //nic.run(tv::MakeRigFunctor_s(viSetAttribute), nic.m_instr, VI_ATTR_SEND_END_EN, VI_FALSE);
-
-        //Commands
-        nic.run(tv::MakeRigFunctor_s(viClear), nic.m_instr);
-        //nic.run(tv::MakeRigFunctor_s(viWrite), nic.m_instr, (ViConstBuf) "READ:WAVFM:CH1\n", 14, &nic.m_ret_cnt);
-        nic.run(tv::MakeRigFunctor_s(viWrite), nic.m_instr, (ViConstBuf) "*IDN?\n", 6, &nic.m_ret_cnt);
-        std::cout << "Write COmpleted." << std::endl;
-        ViByte buf[1024];
-        nic.run(tv::MakeRigFunctor_s(viAssertTrigger),nic.m_instr,VI_TRIG_PROT_DEFAULT);
-        nic.run(tv::MakeRigFunctor_s(viRead), nic.m_instr, buf, 1024, &nic.m_ret_cnt);
-        std::cout << "nicard: " << buf << std::endl;
+        nicard_attr(nic);
+        nicard_hla(nic);
     }
     catch (std::exception &e)
     {
