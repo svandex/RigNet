@@ -24,12 +24,9 @@ Cannot write to database directly becasue database response requires time
 
 int main(void)
 {
-    tv::Setting tvs;
+    tv::Setting *tvs = tv::Setting::INSTANCE();
     //Load Setting from setting.json in project root path
-    tvs.addr_plc = "192.168.0.1";
-    tvs.addr_nic = "192.168.0.101::3580";
-    tvs.addr_mysql = "localhost";
-    if (!tvs.LoadSetting())
+    if (!tvs->LoadSetting())
     {
         std::cout << "Load Setting.json failed!" << std::endl;
         return EXIT_FAILURE;
@@ -48,9 +45,9 @@ int main(void)
 
     try
     {
-        NICard nic(tvs.addr_nic.c_str());
+        NICard nic(tvs->addr_nic.c_str());
         nicard_attr(nic);
-        nicard_hla(nic);
+        nicard_scpi(nic);
     }
     catch (std::exception &e)
     {

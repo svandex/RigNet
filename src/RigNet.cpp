@@ -46,17 +46,34 @@ catch (std::exception &e)
     std::wcout << "std: " << e.what() << std::endl;
 }
 
+tv::Setting *tv::Setting::m_instance = nullptr;
+tv::Setting::deletePTR tv::Setting::del;/*static object to delete m_instance*/
+
 bool tv::Setting::LoadSetting()
 {
+    std::ifstream ifs(filepath);
+    rapidjson::IStreamWrapper isw(ifs);
 
-    //load setting from json file
-    return true;
+    if (jsonobj.ParseStream(isw).HasParseError())
+    {
+        std::cout << rapidjson::GetParseError_En(jsonobj.GetParseError()) << std::endl;
+        throw std::logic_error("setting.json parse error, check syntax.");
+    }
+    else
+    {
+        //load setting from json file
+        addr_mysql = jsonobj["mysql"]["ip"].GetString();
+        addr_nic = jsonobj["nicard"]["daqmx"]["ip"].GetString();
+        addr_plc = jsonobj["simensplc"]["ip"].GetString();
+        return true;
+    }
 }
 
 std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
 {
-    mysqlx::Session mysql_ss("localhost", 33060, "svandex", "y1ban@Hust");
-    mysql_ss.sql("use funtestdemo;").execute();
+    tv::Setting *tvs = tv::Setting::INSTANCE();
+    mysqlx::Session mysql_ss(tvs->jsonobj["mysql"]["ip"].GetString(), 33060, "svandex", "y1ban@Hust");
+    //mysql_ss.sql("use funtestdemo;").execute();
 
     auto mysql_stm = json_msg["sql"]["statement"].GetString();
 
@@ -82,7 +99,8 @@ std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
                 {
                     writer.Int(int(r[tmp]));
                 }
-                if (r[tmp].getType() == mysqlx::Value::Type::STRING){
+                if (r[tmp].getType() == mysqlx::Value::Type::STRING)
+                {
                     writer.String(std::string(r[tmp]).c_str());
                 }
                 else

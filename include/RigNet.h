@@ -2,6 +2,7 @@
 
 #include <string>
 #include <typeinfo>
+#include <fstream>
 
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
@@ -12,6 +13,7 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/istreamwrapper.h>
 
 #include "mysqlx/xdevapi.h"
 
@@ -20,18 +22,45 @@ namespace tv
 class Setting
 {
 public:
-  Setting(){};
-  Setting(const char *fp) : filepath(fp) {}
-  Setting(const char *addrplc, const char *addrnic) : addr_plc(addrplc), addr_nic(addrnic) {}
+  static tv::Setting *INSTANCE()
+  {
+    if (!m_instance)
+    {
+      m_instance = new tv::Setting();
+    }
+    return m_instance;
+  }
+
   bool LoadSetting();
+
+  class deletePTR
+  {
+  public:
+    ~deletePTR()
+    {
+      if (tv::Setting::m_instance)
+      {
+        delete tv::Setting::m_instance;
+      }
+    }
+  };
+
+private:
+  Setting(){};
+  Setting(const tv::Setting &);
 
 public:
   std::string filepath = "setting.json";
-  int NICardNumber = 0;
-  int SimensPLCNumber = 0;
+  rapidjson::Document jsonobj;
+
+  //ip addr
   std::string addr_plc;
   std::string addr_nic;
   std::string addr_mysql;
+
+private:
+  static tv::Setting *m_instance;
+  static deletePTR del;
 };
 
 /*
