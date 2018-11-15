@@ -52,29 +52,3 @@ NICard::NICard(const char *remAddr)
     run(tv::MakeRigFunctor_s(viOpen), *NICard::defaultRM, "USB0::0x3923::0x7269::NI-VISA-1002::RAW", VI_NULL, VI_NULL, &m_instr);
     NICard::m_init_num += 1;
 }
-
-void NICard_s::config_default()
-{
-    /*sampling configuration*/
-    run(tv::MakeRigFunctor_s(DAQmxCfgSampClkTiming), m_tk,"", m_frq, DAQmx_Val_Rising, DAQmx_Val_ContSamps, m_frq_num);
-
-    /*sampling function*/
-    run(tv::MakeRigFunctor_s(DAQmxRegisterEveryNSamplesEvent), m_tk, DAQmx_Val_Acquired_Into_Buffer, m_frq_num, 0, EveryNCallback, nullptr);
-    run(tv::MakeRigFunctor_s(DAQmxRegisterDoneEvent), m_tk, 0, DoneCallback, nullptr);
-}
-
-void NICard_s::start()
-{
-    run(tv::MakeRigFunctor_s(DAQmxStartTask), m_tk);
-}
-
-int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle, int32 everyNsamplesEventType, uInt32 nSamples, void *callbackData)
-{
-    /* sampling*/
-    return DAQmxSuccess;
-}
-
-int32 CVICALLBACK DoneCallback(TaskHandle taskHandle, int32 status, void *callbackData)
-{
-    return DAQmxSuccess;
-}

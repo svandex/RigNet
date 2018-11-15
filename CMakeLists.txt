@@ -7,8 +7,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mavx2 -mfma -g")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+string(REGEX MATCHALL "-m32" PLTFLAGS "${CMAKE_CXX_FLAGS}")
+if(${PLTFLAGS} MATCHES "-m32")
+    set(mysql_wrapper_dir /home/svandex/Softwares/mysql-connector-c++-x86)
+else()
+    set(mysql_wrapper_dir /home/svandex/Softwares/mysql-connector-c++)
+endif()
 set(snap_wrapper_dir /home/svandex/Softwares/snap7-full-1.4.2)
-set(mysql_wrapper_dir /home/svandex/Softwares/mysql-connector-c++)
+set(nidaqmx_base_dir /usr/local/natinst/nidaqmxbase)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -24,6 +30,7 @@ ${PROJECT_SOURCE_DIR}/thirdparty/websocketpp
 /usr/include/ni-visa/
 ${mysql_wrapper_dir}/include/
 ${snap_wrapper_dir}/examples/cpp/
+${nidaqmx_base_dir}/include
 )
 
 link_directories(
@@ -36,10 +43,17 @@ ${mysql_wrapper_dir}/lib
 ${snap_wrapper_dir}/lib
 ${snap_wrapper_dir}/build/bin/x86_64-linux/
 ${snap_wrapper_dir}/build/bin/i386-linux/
+${nidaqmx_base_dir}/lib
+${nidaqmx_base_dir}/lib64
 )
 
-add_executable(rignet src/RigNet.cpp src/NICard.cpp src/SimensPLC.cpp src/sub_test.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
-target_link_libraries(rignet visa pthread snap7 boost_system mysqlcppconn8 nidaqmx)
+#add_executable(rignet src/RigNet.cpp src/NICard_s.cpp src/SimensPLC.cpp src/sub_test.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
+#target_link_libraries(rignet visa pthread snap7 boost_system mysqlcppconn8 nidaqmx)
+
+add_executable(rignet src/RigNet.cpp src/NICard_s.cpp src/SimensPLC.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
+target_link_libraries(rignet pthread snap7 boost_system mysqlcppconn8 nidaqmxbase)
 
 #add_executable(wss test.cpp src/RigNet.cpp)
 #target_link_libraries(wss mysqlcppconn8 boost_system)
+
+install(TARGETS rignet DESTINATION "../bin" CONFIGURATIONS Release RelWithDebInfo Debug)

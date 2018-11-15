@@ -9,9 +9,8 @@ Date: 2018-10-30
 
 #include <iostream>
 
-#include "NICard.h"
+#include "NICard_s.h"
 #include "SimensPLC.h"
-#include "sub_test.h"
 
 /*
 TWo Universal buffer that hold data, Two threads that writes to buffer and writes to mysql database
@@ -25,6 +24,7 @@ Cannot write to database directly becasue database response requires time
 int main(void)
 {
     tv::Setting *tvs = tv::Setting::INSTANCE();
+    tvs->filepath = "/home/svandex/Documents/qiu/code/RigNet/data/setting.json";
     //Load Setting from setting.json in project root path
     if (!tvs->LoadSetting())
     {
@@ -45,20 +45,11 @@ int main(void)
 
     try
     {
-        NICard nic(tvs->addr_nic.c_str());
-        nicard_attr(nic);
-        nicard_scpi(nic);
-    }
-    catch (std::exception &e)
-    {
-        std::cout << e.what() << std::endl;
-    }
+        NICard_s nic(*tvs);
+        nic.config_default();
+        nic.start();
 
-    return 0;
-
-    //websocket server
-    try
-    {
+        return 0;
         server ts;
         //ts.set_open_handshake_timeout(1000000);
         //ts.set_max_http_body_size(64000000);
@@ -84,6 +75,6 @@ int main(void)
     }
     catch (std::exception &e)
     {
-        std::wcout << "std: " << e.what() << std::endl;
+        std::wcout << e.what() << std::endl;
     }
 }
