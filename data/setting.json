@@ -1,0 +1,37 @@
+{
+    "mysql": {
+        "ip": "192.168.0.1",
+        "port": 33060,
+        "user": "svandex",
+        "pwd": "saicg5540"
+    },
+    "nicard": {
+        "visa": {},
+        "daqmx": {
+            "taskname": "RigNet",
+            "ip": "192.168.0.101",
+            "port": 3580,
+            "devicename": "Dev1",
+            "samplefrequency": 2000.0,
+            "samplenumber": 100,
+            "channels": [
+                {
+                    "name": "door_speed",
+                    "port": "ai0",
+                    "min": -10.0,
+                    "max": 10.0
+                },
+                {
+                    "name": "door_degree",
+                    "port": "ai1",
+                    "min": -10.0,
+                    "max": 10.0
+                }
+            ]
+        }
+    },
+    "simensplc": {
+        "ip": "192.168.0.1",
+        "port": 3580
+    }
+}
