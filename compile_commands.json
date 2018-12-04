@@ -1,0 +1,37 @@
+[
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/wss.dir/test.cpp.o -c /home/svandex/Documents/qiu/code/RigNet/test.cpp",
+  "file": "/home/svandex/Documents/qiu/code/RigNet/test.cpp"
+},
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/wss.dir/src/RigNet.cpp.o -c /home/svandex/Documents/qiu/code/RigNet/src/RigNet.cpp",
+  "file": "/home/svandex/Documents/qiu/code/RigNet/src/RigNet.cpp"
+},
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/rignet.dir/src/RigNet.cpp.o -c /home/svandex/Documents/qiu/code/RigNet/src/RigNet.cpp",
+  "file": "/home/svandex/Documents/qiu/code/RigNet/src/RigNet.cpp"
+},
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/rignet.dir/src/NICard_s.cpp.o -c /home/svandex/Documents/qiu/code/RigNet/src/NICard_s.cpp",
+  "file": "/home/svandex/Documents/qiu/code/RigNet/src/NICard_s.cpp"
+},
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/rignet.dir/src/SimensPLC.cpp.o -c /home/svandex/Documents/qiu/code/RigNet/src/SimensPLC.cpp",
+  "file": "/home/svandex/Documents/qiu/code/RigNet/src/SimensPLC.cpp"
+},
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/rignet.dir/main.cpp.o -c /home/svandex/Documents/qiu/code/RigNet/main.cpp",
+  "file": "/home/svandex/Documents/qiu/code/RigNet/main.cpp"
+},
+{
+  "directory": "/home/svandex/Documents/qiu/code/RigNet/build",
+  "command": "/usr/bin/c++   -I/home/svandex/Documents/qiu/code/RigNet -I/home/svandex/Documents/qiu/code/RigNet/include -I/home/svandex/Documents/qiu/code/RigNet/src -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/rapidjson/include -I/home/svandex/Documents/qiu/code/RigNet/thirdparty/websocketpp -I/usr/include/gnu -I/usr/include/c++/4.8.5 -I/usr/include/c++/4.8.5/x86_64-redhat-linux -I/usr/local/include -I/usr/include/ni-visa -I/home/svandex/Softwares/mysql-connector-c++/include -I/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp -I/usr/local/natinst/nidaqmxbase/include   -mavx -mavx2 -mfma -g   -std=gnu++1y -o CMakeFiles/rignet.dir/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp/snap7.cpp.o -c /home/svandex/Softwares/snap7-full-1.4.2/examples/cpp/snap7.cpp",
+  "file": "/home/svandex/Softwares/snap7-full-1.4.2/examples/cpp/snap7.cpp"
+}
+]

@@ -53,7 +53,7 @@ ${nidaqmx_base_dir}/lib64
 add_executable(rignet src/RigNet.cpp src/NICard_s.cpp src/SimensPLC.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
 target_link_libraries(rignet pthread snap7 boost_system mysqlcppconn8 nidaqmxbase)
 
-#add_executable(wss test.cpp src/RigNet.cpp)
-#target_link_libraries(wss mysqlcppconn8 boost_system)
+add_executable(wss test.cpp src/RigNet.cpp)
+target_link_libraries(wss mysqlcppconn8 boost_system)
 
-install(TARGETS rignet DESTINATION "../bin" CONFIGURATIONS Release RelWithDebInfo Debug)
+install(TARGETS wss DESTINATION "bin" CONFIGURATIONS Release RelWithDebInfo Debug)
