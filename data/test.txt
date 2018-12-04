@@ -1,0 +1,1 @@
+{"comtype":"mysql","sql":{"database":"eslam_front","statement":"show databases;"}}

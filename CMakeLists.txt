@@ -2,41 +2,45 @@ cmake_minimum_required(VERSION 3.9)
 project(rignet)
 
 set(CMAKE_CXX_STANDARD 14)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mavx2 -mfma -g")
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-string(REGEX MATCHALL "-m32" PLTFLAGS "${CMAKE_CXX_FLAGS}")
-if(${PLTFLAGS} MATCHES "-m32")
-    set(mysql_wrapper_dir /home/svandex/Softwares/mysql-connector-c++-x86)
-else()
-    set(mysql_wrapper_dir /home/svandex/Softwares/mysql-connector-c++)
-endif()
+if(UNIX)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mavx2 -mfma -g")
+
 set(snap_wrapper_dir /home/svandex/Softwares/snap7-full-1.4.2)
 set(nidaqmx_base_dir /usr/local/natinst/nidaqmxbase)
 
-include_directories(
-${PROJECT_SOURCE_DIR}
-${PROJECT_SOURCE_DIR}/include
-${PROJECT_SOURCE_DIR}/src
-${PROJECT_SOURCE_DIR}/thirdparty/rapidjson/include
-${PROJECT_SOURCE_DIR}/thirdparty/websocketpp
+set(centos_cpp_include_dir 
 /usr/include/
 /usr/include/gnu
 /usr/include/c++/4.8.5/
 /usr/include/c++/4.8.5/x86_64-redhat-linux/
 /usr/local/include
 /usr/include/ni-visa/
+)
+
+set(centos_cpp_link_dir
+/usr/lib/x86_64-linux-gnu/
+/usr/lib
+/usr/lib64
+    )
+elseif(WIN32)
+endif()
+
+include_directories(
+    ${centos_cpp_dir}
+${PROJECT_SOURCE_DIR}
+${PROJECT_SOURCE_DIR}/include
+${PROJECT_SOURCE_DIR}/src
+${PROJECT_SOURCE_DIR}/thirdparty/rapidjson/include
+${PROJECT_SOURCE_DIR}/thirdparty/websocketpp
 ${mysql_wrapper_dir}/include/
 ${snap_wrapper_dir}/examples/cpp/
 ${nidaqmx_base_dir}/include
 )
 
 link_directories(
-/usr/lib/x86_64-linux-gnu/
-/usr/lib
-/usr/lib64
+    ${centos_cpp_link_dir}
 ${mysql_wrapper_dir}/lib64
 ${snap_wrapper_dir}/lib64
 ${mysql_wrapper_dir}/lib
@@ -56,4 +60,5 @@ target_link_libraries(rignet pthread snap7 boost_system mysqlcppconn8 nidaqmxbas
 add_executable(wss test.cpp src/RigNet.cpp)
 target_link_libraries(wss mysqlcppconn8 boost_system)
 
-install(TARGETS wss DESTINATION "bin" CONFIGURATIONS Release RelWithDebInfo Debug)
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
+install(TARGETS rignet wss RUNTIME DESTINATION bin)
