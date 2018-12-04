@@ -33,7 +33,7 @@ class NICard_s final
         for (uint16_t index = 0; index < m_chan_num; index++)
         {
             auto channel_elm = daqmx_obj["channels"][index].GetObject();
-            auto port_name = m_dev_name + std::string("/") + std::string(channel_elm["port"].GetString());
+            //auto port_name = m_dev_name + std::string("/") + std::string(channel_elm["port"].GetString());
             run(tv::MakeRigFunctor_s(DAQmxBaseCreateAIVoltageChan), m_tk, (m_dev_name + std::string("/") + std::string(channel_elm["port"].GetString())).c_str(), channel_elm["name"].GetString(), DAQmx_Val_Cfg_Default, channel_elm["min"].GetFloat(), channel_elm["max"].GetFloat(), DAQmx_Val_Volts, nullptr);
         }
 

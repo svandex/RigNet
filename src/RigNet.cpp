@@ -47,7 +47,7 @@ catch (std::exception &e)
 }
 
 tv::Setting *tv::Setting::m_instance = nullptr;
-tv::Setting::deletePTR tv::Setting::del;/*static object to delete m_instance*/
+tv::Setting::deletePTR tv::Setting::del; /*static object to delete m_instance*/
 
 bool tv::Setting::LoadSetting()
 {
@@ -72,8 +72,16 @@ bool tv::Setting::LoadSetting()
 std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
 {
     tv::Setting *tvs = tv::Setting::INSTANCE();
-    mysqlx::Session mysql_ss(tvs->jsonobj["mysql"]["ip"].GetString(), 33060, "svandex", "y1ban@Hust");
-    //mysql_ss.sql("use funtestdemo;").execute();
+    mysqlx::Session mysql_ss(
+        tvs->jsonobj["mysql"]["ip"].GetString(),
+        tvs->jsonobj["mysql"]["port"].GetUint(),
+        tvs->jsonobj["mysql"]["user"].GetString(),
+        tvs->jsonobj["mysql"]["pwd"].GetString());
+
+    //database selection
+    std::stringstream mysql_db_sel;
+    mysql_db_sel << "use " << json_msg["sql"]["database"].GetString() << ";";
+    mysql_ss.sql(mysql_db_sel.str()).execute();
 
     auto mysql_stm = json_msg["sql"]["statement"].GetString();
 
@@ -124,6 +132,7 @@ std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
 catch (mysqlx::Error const &e)
 {
     std::cout << "mysql error: " << e.what() << std::endl;
+    return std::string("{\"mysql\":\" Joyce-Xu, You encounter an error!\"}");
 }
 
 std::string rignet_plc(server *s, const rapidjson::Document &&json_msg)

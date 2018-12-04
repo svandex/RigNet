@@ -1,7 +1,16 @@
 #include <iostream>
 #include "RigNet.h"
 
-int main(void){
+int main(void)
+{
+    tv::Setting *tvs = tv::Setting::INSTANCE();
+    tvs->filepath = "/home/svandex/Documents/qiu/code/RigNet/data/setting.json";
+    //Load Setting from setting.json in project root path
+    if (!tvs->LoadSetting())
+    {
+        std::cout << "Load Setting.json failed!" << std::endl;
+        return EXIT_FAILURE;
+    }
     try
     {
         server ts;

@@ -51,8 +51,6 @@ int main(void)
 
         return 0;
         server ts;
-        //ts.set_open_handshake_timeout(1000000);
-        //ts.set_max_http_body_size(64000000);
         //ts.set_http_handler(bind(&on_http, &ts, ::_1));
         ts.set_message_handler(bind(&on_message, &ts, ::_1, ::_2));
 
