@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mavx2 -mfma -g")
 
 set(snap_wrapper_dir /home/svandex/Softwares/snap7-full-1.4.2)
 set(nidaqmx_base_dir /usr/local/natinst/nidaqmxbase)
+set(mysql_wrapper_dir /home/svandex/Softwares/mysql-connector-c++)
 
 set(centos_cpp_include_dir 
 /usr/include/
