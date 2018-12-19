@@ -29,7 +29,6 @@ int main(void)
         char x;
         std::cin >> x;
         ts.stop_listening();
-        ts.stop();
         t.join();
     }
     catch (websocketpp::exception &e)
