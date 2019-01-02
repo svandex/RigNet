@@ -3,8 +3,8 @@
 void NICard_s::config_default()
 {
     /*sampling configuration*/
-    run(tv::MakeRigFunctor_s(DAQmxBaseCfgSampClkTiming), m_tk, "", m_frq, DAQmx_Val_Rising, DAQmx_Val_ContSamps, m_frq_num);
-    run(tv::MakeRigFunctor_s(DAQmxBaseCfgInputBuffer), m_tk, 200000);
+    run(tv::MakeRigFunctor_s(DAQmxCfgSampClkTiming), m_tk, "", m_frq, DAQmx_Val_Rising, DAQmx_Val_ContSamps, m_frq_num);
+    run(tv::MakeRigFunctor_s(DAQmxCfgInputBuffer), m_tk, 200000);
 
 #ifdef __nidaqmx_h__
     /*sampling function*/
@@ -15,14 +15,14 @@ void NICard_s::config_default()
 
 void NICard_s::start()
 {
-    run(tv::MakeRigFunctor_s(DAQmxBaseStartTask), m_tk);
+    run(tv::MakeRigFunctor_s(DAQmxStartTask), m_tk);
 
     //store data
     time_t startTime = time(nullptr);
     while (time(nullptr) < startTime + 10)
     {
         int32 readpoints;
-        run(tv::MakeRigFunctor_s(DAQmxBaseReadAnalogF64), m_tk, m_frq_num, 10.0, DAQmx_Val_GroupByChannel, *m_data_buf.get(), m_frq_num * m_chan_num, &readpoints, nullptr);
+        run(tv::MakeRigFunctor_s(DAQmxReadAnalogF64), m_tk, m_frq_num, 10.0, DAQmx_Val_GroupByChannel, *m_data_buf.get(), m_frq_num * m_chan_num, &readpoints, nullptr);
         for (int32 i = 0; i < 10; i++)
         {
             printf("data0[%ld] = %f\tdata1[%ld] = %f\n", i, (*m_data_buf.get())[2 * i], i, (*m_data_buf.get())[2 * i + 1]);

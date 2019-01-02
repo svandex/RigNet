@@ -35,6 +35,12 @@ if(UNIX)
         /usr/lib64
         )
 elseif(WIN32)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -wd4267")
+
+    set(snap_wrapper_dir "C:/Users/Public/Softwares/snap7-full-1.4.2/")
+    set(nidaqmx_dir "C:\\Program Files (x86)\\National Instruments\\Shared\\ExternalCompilerSupport\\C")
+    set(mysql_wrapper_dir "C:/Program Files/MySQL/Connector C++ 8.0/")
+    set(vcpkg_dir "C:/Users/Public/Repositories/vcpkg/installed/x64-windows/")
 endif()
 
 include_directories(
@@ -42,34 +48,47 @@ include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/thirdparty/rapidjson/include
-    ${PROJECT_SOURCE_DIR}/thirdparty/websocketpp
-    ${mysql_wrapper_dir}/include/
+    ${PROJECT_SOURCE_DIR}/../rapidjson/include
+    ${PROJECT_SOURCE_DIR}/../websocketpp
+    #${mysql_wrapper_dir}/include/
+    C:/Users/Public/Repositories/mysql-connector-cpp/include
     ${snap_wrapper_dir}/examples/cpp/
     ${nidaqmx_base_dir}/include
+    ${vcpkg_dir}/include
     )
 
 link_directories(
     ${centos_cpp_link_dir}
-    ${mysql_wrapper_dir}/lib64
-    ${mysql_wrapper_dir}/lib
+    #${mysql_wrapper_dir}/lib64
+    #${mysql_wrapper_dir}/lib64/vs14
+    #${mysql_wrapper_dir}/lib
+    C:/Users/Public/Softwares/mysql-connector-cpp/Release
+    C:/Users/Public/Softwares/mysql-connector-cpp/Debug
     ${snap_wrapper_dir}/lib64
     ${snap_wrapper_dir}/lib
     ${snap_wrapper_dir}/build/bin/x86_64-linux/
     ${snap_wrapper_dir}/build/bin/i386-linux/
-    ${nidaqmx_base_dir}/lib
-    ${nidaqmx_base_dir}/lib64
+    ${snap_wrapper_dir}/build/bin/win64/
+    ${nidaqmx_dir}/lib64/msvc
+    ${vcpkg_dir}/lib
     )
 
 #add_executable(rignet src/RigNet.cpp src/NICard_s.cpp src/SimensPLC.cpp src/sub_test.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
 #target_link_libraries(rignet visa pthread snap7 boost_system mysqlcppconn8 nidaqmx)
 
 add_executable(rignet src/RigNet.cpp src/NICard_s.cpp src/SimensPLC.cpp main.cpp ${snap_wrapper_dir}/examples/cpp/snap7.cpp)
+if(UNIX)
 target_link_libraries(rignet snap7 boost_system mysqlcppconn8 nidaqmxbase pthread gcc_s)
+else(WIN32)
+target_link_libraries(rignet snap7 boost_system-vc140-mt mysqlcppconn8 nidaqmx)
+endif()
 
 add_executable(wss test.cpp src/RigNet.cpp)
-target_link_libraries(wss mysqlcppconn8 boost_system pthread c++abi)
-#target_link_options(wss "-rpath-link=/lib64")
+if(UNIX)
+target_link_libraries(wss mysqlcppconn8 boost_system pthread)
+else(WIN32)
+target_link_libraries(wss mysqlcppconn8 boost_system-vc140-mt)
+endif()
 
 set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
 install(TARGETS rignet wss RUNTIME DESTINATION bin)

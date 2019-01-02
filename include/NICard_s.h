@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RigNet.h"
-#include "NIDAQmxBase.h"
+#include "NIDAQmx.h"
 
 /*NICard class that implemented by using nidaqmx*/
 class NICard_s final
@@ -25,16 +25,16 @@ class NICard_s final
     */
 
         /*reset device*/
-        run(tv::MakeRigFunctor_s(DAQmxBaseResetDevice), m_dev_name.c_str());
+        run(tv::MakeRigFunctor_s(DAQmxResetDevice), m_dev_name.c_str());
         /*create task*/
-        run(tv::MakeRigFunctor_s(DAQmxBaseCreateTask), m_tk_name, &m_tk);
+        run(tv::MakeRigFunctor_s(DAQmxCreateTask), m_tk_name, &m_tk);
 
         m_chan_num = daqmx_obj["channels"].GetArray().Size();
         for (uint16_t index = 0; index < m_chan_num; index++)
         {
             auto channel_elm = daqmx_obj["channels"][index].GetObject();
             //auto port_name = m_dev_name + std::string("/") + std::string(channel_elm["port"].GetString());
-            run(tv::MakeRigFunctor_s(DAQmxBaseCreateAIVoltageChan), m_tk, (m_dev_name + std::string("/") + std::string(channel_elm["port"].GetString())).c_str(), channel_elm["name"].GetString(), DAQmx_Val_Cfg_Default, channel_elm["min"].GetFloat(), channel_elm["max"].GetFloat(), DAQmx_Val_Volts, nullptr);
+            run(tv::MakeRigFunctor_s(DAQmxCreateAIVoltageChan), m_tk, (m_dev_name + std::string("/") + std::string(channel_elm["port"].GetString())).c_str(), channel_elm["name"].GetString(), DAQmx_Val_Cfg_Default, channel_elm["min"].GetFloat(), channel_elm["max"].GetFloat(), DAQmx_Val_Volts, nullptr);
         }
 
         /*data buffer*/
@@ -43,8 +43,8 @@ class NICard_s final
 
     ~NICard_s()
     {
-        DAQmxBaseStopTask(m_tk);
-        DAQmxBaseClearTask(m_tk);
+        DAQmxStopTask(m_tk);
+        DAQmxClearTask(m_tk);
     }
 
     template <typename... rfArgs, typename... Args>
@@ -53,7 +53,7 @@ class NICard_s final
         m_error = rf(std::forward<Args>(args)...);
         if (DAQmxFailed(m_error))
         {
-            DAQmxBaseGetExtendedErrorInfo(m_errbuf, 2048);
+            DAQmxGetExtendedErrorInfo(m_errbuf, 2048);
             if (m_tk != 0)
             {
                 m_tk = 0;

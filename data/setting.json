@@ -1,9 +1,9 @@
 {
     "mysql": {
-        "ip": "127.0.0.1",
+        "ip": "localhost",
         "port": 33060,
-        "user": "svandex",
-        "pwd": "y1ban@Hust"
+        "user": "saictv",
+        "pwd": "saictv"
     },
     "nicard": {
         "visa": {},

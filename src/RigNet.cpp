@@ -72,15 +72,18 @@ bool tv::Setting::LoadSetting()
 std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
 {
     tv::Setting *tvs = tv::Setting::INSTANCE();
+
     mysqlx::Session mysql_ss(
-        tvs->jsonobj["mysql"]["ip"].GetString(),
-        tvs->jsonobj["mysql"]["port"].GetUint(),
-        tvs->jsonobj["mysql"]["user"].GetString(),
-        tvs->jsonobj["mysql"]["pwd"].GetString());
+            tvs->jsonobj["mysql"]["ip"].GetString(),
+            tvs->jsonobj["mysql"]["port"].GetUint(),
+            tvs->jsonobj["mysql"]["user"].GetString(),
+            tvs->jsonobj["mysql"]["pwd"].GetString(),
+            json_msg["sql"]["database"].GetString()
+            );
 
     //database selection
     std::stringstream mysql_db_sel;
-    mysql_db_sel << "use " << json_msg["sql"]["database"].GetString() << ";";
+    mysql_db_sel << "use " << json_msg["sql"]["database"].GetString() ;
     mysql_ss.sql(mysql_db_sel.str()).execute();
 
     auto mysql_stm = json_msg["sql"]["statement"].GetString();
@@ -97,30 +100,40 @@ std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
         /*start object*/
         writer.StartObject();
         int indx = 0;
-        while (r = rsets.fetchOne())
+        while ((r = rsets.fetchOne()))
         {
             writer.Key(std::to_string(indx).c_str());
             writer.StartArray();
             for (unsigned tmp = 0; tmp < r.colCount(); tmp++)
             {
-                if (r[tmp].getType() == mysqlx::Value::Type::INT64)
-                {
-                    writer.Int(int(r[tmp]));
-                }
-                if (r[tmp].getType() == mysqlx::Value::Type::STRING)
-                {
-                    writer.String(std::string(r[tmp]).c_str());
-                }
-                else
-                {
-                    writer.String("null");
+                switch(r[tmp].getType()){
+                    case mysqlx::Value::Type::UINT64 : writer.Uint64((uint64_t)r[tmp]);break;
+                    case mysqlx::Value::Type::INT64 : writer.Int64((int64_t)r[tmp]);break;
+                    case mysqlx::Value::Type::STRING: writer.String(std::string(r[tmp]).c_str());break;
+                    case mysqlx::Value::Type::DOUBLE: writer.Double((double)r[tmp]);break;
+                    case mysqlx::Value::Type::BOOL: writer.Bool((bool)r[tmp]);break;
+                    case mysqlx::Value::Type::RAW : {
+                                                        auto vele = r[tmp].getRawBytes();
+                                                        time_t vtime=*vele.begin();
+                                                        char buf[256];
+                                                        //ctime_s(buf,256,&vtime);
+                                                        tm v_tm;
+                                                        localtime_s(&v_tm,&vtime);                             
+                                                        asctime_s(buf,256,&v_tm);                             
+                                                        writer.String(buf);
+                                                        break;
+                                                    }
+                    default:
+                           writer.String("null");
+                           break;
+
                 }
             }
             writer.EndArray();
             indx++;
         }
         writer.EndObject();
-        /*end object*/
+            /*end object*/
 
         return std::string(sb.GetString());
     }

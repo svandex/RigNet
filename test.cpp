@@ -1,10 +1,15 @@
 #include <iostream>
 #include "RigNet.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
     tv::Setting *tvs = tv::Setting::INSTANCE();
-    tvs->filepath = "/home/svandex/Documents/qiu/code/RigNet/data/setting.json";
+    if(argc!=2){
+        std::cout<<"require setting.json path\n";
+        return 0;
+    }
+    tvs->filepath = argv[1];
+    //tvs->filepath = "C:/Users/saictv/Repositories/RigNet/data/setting.json";
     //Load Setting from setting.json in project root path
     if (!tvs->LoadSetting())
     {
@@ -14,15 +19,27 @@ int main(void)
     try
     {
         server ts;
-        //ts.set_open_handshake_timeout(1000000);
-        //ts.set_max_http_body_size(64000000);
-        //ts.set_http_handler(bind(&on_http, &ts, ::_1));
+        std::ofstream log;
+
         ts.set_message_handler(bind(&on_message, &ts, ::_1, ::_2));
+
+        //logging
+        ts.set_access_channels(websocketpp::log::alevel::connect);
+        ts.set_access_channels(websocketpp::log::alevel::disconnect);
+        ts.set_access_channels(websocketpp::log::alevel::app);
+
+        log.open("output.log");
+        ts.get_alog().set_ostream(&log);
+        ts.get_elog().set_ostream(&log);
 
         //preparation
         ts.init_asio();
-        ts.listen(websocketpp::lib::asio::ip::tcp::v4(), 9002);
+        ts.listen(websocketpp::lib::asio::ip::tcp::v4(), 9001);
         ts.start_accept();
+
+        char host_name[255];
+        gethostname(host_name,sizeof(host_name));
+        std::cout<<"Please Connect to "<<host_name<<std::endl;
 
         //tvrig_server.run();
         std::thread t(&server::run, &ts);
