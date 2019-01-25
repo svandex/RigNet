@@ -34,15 +34,19 @@ int main(int argc, char *argv[])
 
         //preparation
         ts.init_asio();
-        ts.listen(websocketpp::lib::asio::ip::tcp::v4(), 9001);
+        ts.listen(websocketpp::lib::asio::ip::tcp::v4(), 9002);
         ts.start_accept();
 
+        /*
         char host_name[255];
         gethostname(host_name,sizeof(host_name));
         std::cout<<"Please Connect to "<<host_name<<std::endl;
+        */
 
         //tvrig_server.run();
         std::thread t(&server::run, &ts);
+
+        std::cout<<"Input any character to stop runing..."<<std::endl;
         char x;
         std::cin >> x;
         ts.stop_listening();

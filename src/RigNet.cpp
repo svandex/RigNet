@@ -10,15 +10,16 @@ void on_message(server *s, websocketpp::connection_hdl hdl, server::message_ptr 
     rig_dispatchlist_map["nicard"] = rignet_nicard;
 
     rapidjson::Document json_msg;
+//    std::cout<<msg->get_payload().c_str()<<std::endl;
     if (json_msg.Parse(msg->get_payload().c_str()).HasParseError())
     {
         s->send(hdl, "{\"rapidjson\":\"parse error\"}", websocketpp::frame::opcode::TEXT);
         return;
     }
 
-    if (json_msg.HasMember("comtype"))
+    if (json_msg.HasMember("comtype")&&json_msg.HasMember("wspid"))
     {
-        if (json_msg["comtype"].IsString())
+        if (json_msg["comtype"].IsString()&&json_msg["wspid"].IsString())
         {
             auto f = rig_dispatchlist_map[json_msg["comtype"].GetString()];
             auto result = f(s, std::move(json_msg));
@@ -27,13 +28,13 @@ void on_message(server *s, websocketpp::connection_hdl hdl, server::message_ptr 
         }
         else
         {
-            s->send(hdl, "{\"rapidjson\":\"command type member should be string.\"}", websocketpp::frame::opcode::TEXT);
+            s->send(hdl, "{\"rapidjson\":\"command type member or wspid should be string.\"}", websocketpp::frame::opcode::TEXT);
             return;
         }
     }
     else
     {
-        s->send(hdl, "{\"rapidjson\":\"json has no member named comtype\"}", websocketpp::frame::opcode::TEXT);
+        s->send(hdl, "{\"rapidjson\":\"json has no member named comtype or wspid\"}", websocketpp::frame::opcode::TEXT);
         return;
     }
 }
@@ -130,8 +131,12 @@ std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
                 }
             }
             writer.EndArray();
+
             indx++;
         }
+        //websocket process id return to client
+        writer.Key("wspid");
+        writer.String(json_msg["wspid"].GetString());
         writer.EndObject();
             /*end object*/
 
@@ -156,3 +161,22 @@ std::string rignet_nicard(server *s, const rapidjson::Document &&json_msg)
 {
     return std::string("{\"rapidjson\":\"success\"}");
 }
+
+
+void rignet::tools::GetCurrentPath(TCHAR* dest){
+
+            if(!dest) return;
+
+            HMODULE hModule=GetModuleHandle(NULL);
+            if(hModule!=NULL){
+                DWORD length=GetModuleFileName(hModule,dest,MAX_PATH);
+            }else{
+                return;
+            }
+
+#if (NTDDI_VERSION>=NTDDI_WIN8)
+            PathCchRemoveFileSpec(dest,MAX_PATH);
+#else
+            PathRemoveFileSpec(dest);
+#endif
+        }

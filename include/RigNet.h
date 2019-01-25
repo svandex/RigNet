@@ -17,6 +17,8 @@
 
 #include "mysqlx/xdevapi.h"
 
+#include "pathcch.h"
+
 namespace tv
 {
 class Setting
@@ -132,3 +134,9 @@ void on_message(server *s, websocketpp::connection_hdl hdl, server::message_ptr 
 std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg);
 std::string rignet_plc(server *s, const rapidjson::Document &&json_msg);
 std::string rignet_nicard(server *s, const rapidjson::Document &&json_msg);
+
+namespace rignet{
+    namespace tools{
+        void GetCurrentPath(TCHAR* dest);
+    }
+}
