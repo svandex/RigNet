@@ -21,7 +21,7 @@
 #include <windows.h>
 #include "ServiceInstaller.h"
 #include "ServiceBase.h"
-#include "MySQLService.h"
+#include "RigNetService.h"
 //#include "SampleService.h"
 #pragma endregion
 
@@ -31,10 +31,10 @@
 // 
 
 // Internal name of the service
-#define SERVICE_NAME             L"CppMySQLService"
+#define SERVICE_NAME             L"RigNetService"
 
 // Displayed name of the service
-#define SERVICE_DISPLAY_NAME     L"CppMySQLService"
+#define SERVICE_DISPLAY_NAME     L"RigNetService"
 
 // Service start options.
 #define SERVICE_START_TYPE       SERVICE_DEMAND_START

@@ -1,5 +1,21 @@
 #include "RigNet.h"
 
+#ifdef NI_ENABLE
+#include "NICard_s.h"
+#endif
+
+void on_http(server *s, websocketpp::connection_hdl hdl) try{//handling HTTP packet
+
+}
+catch (websocketpp::exception const &e)
+{
+    std::cout << "websocketpp error:" << e.what() << std::endl;
+}
+catch (std::exception &e)
+{
+    std::wcout << "std: " << e.what() << std::endl;
+}
+
 void on_message(server *s, websocketpp::connection_hdl hdl, server::message_ptr msg) try
 {
     static std::map<std::string, std::function<std::string(server *, const rapidjson::Document &&)>> rig_dispatchlist_map;
@@ -72,16 +88,12 @@ bool tv::Setting::LoadSetting()
 
 std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
 {
-    tv::Setting *tvs = tv::Setting::INSTANCE();
+    tv::Setting *tvs = tv::Setting::instance();
 
-    mysqlx::Session mysql_ss(
-            tvs->jsonobj["mysql"]["ip"].GetString(),
-            tvs->jsonobj["mysql"]["port"].GetUint(),
-            tvs->jsonobj["mysql"]["user"].GetString(),
-            tvs->jsonobj["mysql"]["pwd"].GetString(),
-            json_msg["sql"]["database"].GetString()
-            );
+	auto mysql_login = std::string("mysqlx://") + tvs->jsonobj["mysql"]["user"].GetString() + std::string(":") + tvs->jsonobj["mysql"]["pwd"].GetString() + std::string("@") + tvs->jsonobj["mysql"]["ip"].GetString() + std::string(":") + std::to_string(tvs->jsonobj["mysql"]["port"].GetInt()) + std::string("/eslam?ssl-mode=disabled");
 
+	//mysqlx::Session mysql_ss("mysqlx://saictv:saictv@localhost:33060/eslam?ssl-mode=disabled");
+	mysqlx::Session mysql_ss(mysql_login.c_str());
     //database selection
     std::stringstream mysql_db_sel;
     mysql_db_sel << "use " << json_msg["sql"]["database"].GetString() ;
@@ -113,31 +125,38 @@ std::string rignet_mysql(server *s, const rapidjson::Document &&json_msg) try
                     case mysqlx::Value::Type::STRING: writer.String(std::string(r[tmp]).c_str());break;
                     case mysqlx::Value::Type::DOUBLE: writer.Double((double)r[tmp]);break;
                     case mysqlx::Value::Type::BOOL: writer.Bool((bool)r[tmp]);break;
-                    case mysqlx::Value::Type::RAW : {
-                                                        auto vele = r[tmp].getRawBytes();
-                                                        time_t vtime=*vele.begin();
-                                                        char buf[256];
-                                                        //ctime_s(buf,256,&vtime);
-                                                        tm v_tm;
-                                                        localtime_s(&v_tm,&vtime);                             
-                                                        asctime_s(buf,256,&v_tm);                             
-                                                        writer.String(buf);
-                                                        break;
-                                                    }
-                    default:
-                           writer.String("null");
-                           break;
+					case mysqlx::Value::Type::RAW: {
+						/*
+						r[tmp].print(std::cout);
+						auto vele = r[tmp].getRawBytes();
+						time_t vtime = *(uint32_t*)vele.first * 65536;
+						char buf[256];
+						tm v_tm;
+						gmtime_s(&v_tm, &vtime);
+						ctime_s(buf, 256, &vtime);
+						std::cout << buf << std::endl;
+						asctime_s(buf, 256, &v_tm);
+						std::cout << buf << std::endl;
+						writer.String(buf);
+						break;
+*/
+						writer.String("rawbytes");
+						break;
+					}
+					default:
+						writer.String("null");
+						break;
 
-                }
-            }
-            writer.EndArray();
+				}
+			}
+			writer.EndArray();
 
-            indx++;
-        }
-        //websocket process id return to client
-        writer.Key("wspid");
-        writer.String(json_msg["wspid"].GetString());
-        writer.EndObject();
+			indx++;
+		}
+		//websocket process id return to client
+		writer.Key("wspid");
+		writer.String(json_msg["wspid"].GetString());
+		writer.EndObject();
             /*end object*/
 
         return std::string(sb.GetString());
@@ -152,31 +171,52 @@ catch (mysqlx::Error const &e)
     std::cout << "mysql error: " << e.what() << std::endl;
     return std::string("{\"mysql\":\" Joyce-Xu, You encounter an error!\"}");
 }
+catch (std::exception const &e) {
+    std::cout << "std error: " << e.what() << std::endl;
+    return std::string("{\"std\":\" Joyce-Xu, You encounter an error!\"}");
+}
 
 std::string rignet_plc(server *s, const rapidjson::Document &&json_msg)
 {
     return std::string("{\"rapidjson\":\"success\"}");
 }
-std::string rignet_nicard(server *s, const rapidjson::Document &&json_msg)
+
+std::string rignet_nicard(server *s, const rapidjson::Document &&json_msg) try
 {
-    return std::string("{\"rapidjson\":\"success\"}");
-}
+#ifdef NI_ENABLE
+    tv::Setting *tvs = tv::Setting::INSTANCE();
 
+	if (json_msg.HasMember("savefiledata")) {
+		auto sfdata = json_msg["savefiledata"].GetArray();
+		time_t nt = time(NULL);
+		struct tm ptm;
+		localtime_s(&ptm, &nt);
+		auto parentdir_num = tvs->filepath.length() - 12;
+		auto parentdir = tvs->filepath.substr(0, parentdir_num);
+		auto savepath = parentdir + std::to_string(ptm->tm_mon + 1) + std::to_string(ptm->tm_mday) + std::to_string(ptm->tm_hour) + std::to_string(ptm->tm_min) + std::to_string(ptm->tm_sec) + ".txt";
 
-void rignet::tools::GetCurrentPath(TCHAR* dest){
+		std::ofstream fs(savepath);
+		for (int index = 0; index < (int)sfdata.Size(); index++) {
+			fs << sfdata[index].GetDouble() << std::endl;
+		}
+		return std::string("{\"nicard\":\"saved\"}");
+	}
+    auto nicard_json = tvs->jsonobj["nicard"]["daqmx"].GetObject();
 
-            if(!dest) return;
-
-            HMODULE hModule=GetModuleHandle(NULL);
-            if(hModule!=NULL){
-                DWORD length=GetModuleFileName(hModule,dest,MAX_PATH);
-            }else{
-                return;
-            }
-
-#if (NTDDI_VERSION>=NTDDI_WIN8)
-            PathCchRemoveFileSpec(dest,MAX_PATH);
+    //NI Card Initialization
+    auto nic = NICard_s::instance(*tvs);
+    if (nic)
+    {
+        return nic->return_buffer_json();
+    }else{
+        return std::string("{\"raidjson\":\"failed to initialize NI card.\"}");
+    }
 #else
-            PathRemoveFileSpec(dest);
+	return std::string("{\"result\":\"NI_DISABLE\"}");
 #endif
-        }
+}
+catch (std::exception const &e)
+{
+    std::cout << "nicard error: " << e.what() << std::endl;
+    return std::string("{\"mysql\":\" Joyce-Xu, You encounter an error!\"}");
+}

@@ -9,21 +9,15 @@
         "visa": {},
         "daqmx": {
             "taskname": "RigNet",
-            "ip": "192.168.0.101",
+            "ip": "192.168.1.104",
             "port": 3580,
-            "devicename": "Dev1",
+            "devicename": "cDAQ9191-1D44868Mod1",
             "samplefrequency": 2000.0,
             "samplenumber": 100,
             "channels": [
                 {
                     "name": "door_speed",
                     "port": "ai0",
-                    "min": -10.0,
-                    "max": 10.0
-                },
-                {
-                    "name": "door_degree",
-                    "port": "ai1",
                     "min": -10.0,
                     "max": 10.0
                 }

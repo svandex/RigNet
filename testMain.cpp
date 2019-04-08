@@ -1,15 +1,24 @@
+/*
+
+Rig Lab Workbench Network
+
+Creator: Qiu Juncheng
+Date: 2018-10-30
+
+*/
+
 #include <iostream>
 #include "RigNet.h"
+#include "Svandex.h"
+
+#ifdef NI_ENABLE
+#include "NICard_s.h"
+#endif
 
 int main(int argc, char *argv[])
 {
-    tv::Setting *tvs = tv::Setting::INSTANCE();
-    if(argc!=2){
-        std::cout<<"require setting.json path\n";
-        return 0;
-    }
-    tvs->filepath = argv[1];
-    //tvs->filepath = "C:/Users/saictv/Repositories/RigNet/data/setting.json";
+    tv::Setting *tvs = tv::Setting::instance();
+	tvs->filepath = svandex::tools::GetCurrentPath() + "/setting.json";
     //Load Setting from setting.json in project root path
     if (!tvs->LoadSetting())
     {
@@ -28,7 +37,7 @@ int main(int argc, char *argv[])
         ts.set_access_channels(websocketpp::log::alevel::disconnect);
         ts.set_access_channels(websocketpp::log::alevel::app);
 
-        log.open("output.log");
+        log.open((svandex::tools::GetCurrentPath()+"output.log").c_str());
         ts.get_alog().set_ostream(&log);
         ts.get_elog().set_ostream(&log);
 
@@ -44,13 +53,7 @@ int main(int argc, char *argv[])
         */
 
         //tvrig_server.run();
-        std::thread t(&server::run, &ts);
-
-        std::cout<<"Input any character to stop runing..."<<std::endl;
-        char x;
-        std::cin >> x;
-        ts.stop_listening();
-        t.join();
+		ts.run();
     }
     catch (websocketpp::exception &e)
     {

@@ -18,7 +18,7 @@
 \***************************************************************************/
 
 #pragma region Includes
-#include "MySQLService.h"
+#include "RigNetService.h"
 #include "ThreadPool.h"
 #pragma endregion
 
@@ -121,7 +121,7 @@ void CSampleService::ServiceWorkerThread(void)
 #endif
     */
 
-    tv::Setting *st = tv::Setting::INSTANCE();
+    tv::Setting *st = tv::Setting::instance();
     //setting.json
     //std::string strpt(pt);
     //int pos = strpt.find_last_of("\\", strpt.length());
