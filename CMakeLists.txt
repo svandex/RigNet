@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(rignet)
+project(RigNet)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
@@ -17,8 +17,6 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/include/RigNetService
 	${nidaqmx_dir}/include
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/RigNetService
     ${PROJECT_SOURCE_DIR}/../rapidjson/include
     ${PROJECT_SOURCE_DIR}/../websocketpp
     ${vcpkg_dir}/include
@@ -42,3 +40,8 @@ target_link_libraries(RigNetService mysqlcppconn8 boost_system-vc140-mt  pathcch
 #target_link_libraries(testSvandex pathcch)
 add_executable(testapp testMain.cpp src/Svandex.cpp src/RigNet.cpp)
 target_link_libraries(testapp mysqlcppconn8 boost_system-vc140-mt  pathcch)
+
+#IIS MODULE 
+string(APPEND DEF_DIR "/def:" ${PROJECT_SOURCE_DIR} "/data/iisdef.def")
+add_library(gModuleTest SHARED src/IISModule/globalmodule.cpp)
+set_target_properties(gModuleTest PROPERTIES LINK_FLAGS ${DEF_DIR})
