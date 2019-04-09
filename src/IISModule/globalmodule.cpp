@@ -87,7 +87,7 @@ RegisterModule(
     UNREFERENCED_PARAMETER(pGlobalInfo);
 	auto cpath = svandex::tools::GetCurrentPath();
 	google::InitGoogleLogging("RigNetServiceGlog");
-	google::SetLogDestination(google::GLOG_INFO, "C:\\Users\\saictv\\Desktop\\LogFiles\\");
+	google::SetLogDestination(google::GLOG_INFO, "C:\\");
 	LOG(INFO) << "glog started.";
 
     MyGlobalModule *pGlobalModule = new MyGlobalModule;
