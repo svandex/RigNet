@@ -19,6 +19,9 @@
 
 #include "pathcch.h"
 
+#include "Svandex.h"
+#include "glog/logging.h"
+
 namespace tv
 {
 	class Setting

@@ -1,5 +1,6 @@
 #define _WINSOCKAPI_
 #include <httpserv.h>
+#include <fstream>
 
 class MyGlobalModule : public CGlobalModule
 {
@@ -81,10 +82,12 @@ RegisterModule(
     IHttpServer * pGlobalInfo
 )
 {
-    UNREFERENCED_PARAMETER( dwServerVersion );
-    UNREFERENCED_PARAMETER( pGlobalInfo );
+    UNREFERENCED_PARAMETER(dwServerVersion);
+    UNREFERENCED_PARAMETER(pGlobalInfo);
+    std::fstream fd("C:\\Users\\saictv\\Desktop\\test.txt", std::ios::out | std::ios::app);
+    fd << "success" << std::endl;
 
-    MyGlobalModule * pGlobalModule = new MyGlobalModule;
+    MyGlobalModule *pGlobalModule = new MyGlobalModule;
 
     if (NULL == pGlobalModule)
     {

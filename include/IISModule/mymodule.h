@@ -1,5 +1,5 @@
-#ifndef __MY_MODULE_H__
-#define __MY_MODULE_H__
+#ifndef __MYMODULE_H__
+#define __MYMODULE_H__
 
 #include "precomp.h"
 

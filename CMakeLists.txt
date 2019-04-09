@@ -6,35 +6,34 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -wd4267")
 
-set(nidaqmx_dir "C:\\Program Files (x86)\\National Instruments\\Shared\\ExternalCompilerSupport\\C")
+set(NIDAQMX_INSTALL_DIR "C:\\Program Files (x86)\\National Instruments\\Shared\\ExternalCompilerSupport\\C")
 #set(mysql_wrapper_dir "C:\\Program Files\\MySQL\\Connector C++ 8.0\\")
-set(mysql_wrapper_dir "C:\\Users\\saictv\\Documents\\Repositories\\mysql-connector-cpp")
-set(mysql_bin "C:\\Users\\saictv\\Documents\\Softwares\\mysql-connector-cpp")
-set(vcpkg_dir "C:/Users/saictv/Documents/Repositories/vcpkg/installed/x64-windows/")
+set(MYSQL_SOURCE_DIR "C:\\Users\\saictv\\Documents\\Repositories\\mysql-connector-cpp")
+set(MYSQL_BIN_DIR "C:\\Users\\saictv\\Documents\\Softwares\\mysql-connector-cpp")
+set(VCPKG_INSTALL_DIR "C:/Users/saictv/Documents/Repositories/vcpkg/installed/x64-windows/")
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/include/RigNetService
-	${nidaqmx_dir}/include
+	${NIDAQMX_INSTALL_DIR}/include
     ${PROJECT_SOURCE_DIR}/../rapidjson/include
     ${PROJECT_SOURCE_DIR}/../websocketpp
-    ${vcpkg_dir}/include
-	${mysql_wrapper_dir}/include
+    ${VCPKG_INSTALL_DIR}/include
+	${MYSQL_SOURCE_DIR}/include
     )
 
 link_directories(
-#    ${mysql_wrapper_dir}/lib64/vs14
-	${mysql_bin}
-    ${nidaqmx_dir}/lib64/msvc
-    ${vcpkg_dir}/lib
+	${MYSQL_BIN_DIR}
+    ${NIDAQMX_INSTALL_DIR}/lib64/msvc
+    ${VCPKG_INSTALL_DIR}/lib
     )
 
-add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN)
+add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DGLOG_NO_ABBREVIATED_SEVERITIES)
 set(CMAKE_MFC_FLAG 2)
 add_executable(RigNetService src/RigNetService/CppWindowsService.cpp src/RigNetService/RigNetService.cpp src/RigNetService/ServiceBase.cpp src/RigNetService/ServiceInstaller.cpp src/RigNet.cpp src/Svandex.cpp)
 set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
-target_link_libraries(RigNetService mysqlcppconn8 boost_system-vc140-mt  pathcch)
+target_link_libraries(RigNetService mysqlcppconn8 boost_system-vc140-mt  pathcch glog)
 
 #add_executable(testSvandex testSvandex.cpp src/Svandex.cpp)
 #target_link_libraries(testSvandex pathcch)
@@ -44,4 +43,5 @@ target_link_libraries(testapp mysqlcppconn8 boost_system-vc140-mt  pathcch)
 #IIS MODULE 
 string(APPEND DEF_DIR "/def:" ${PROJECT_SOURCE_DIR} "/data/iisdef.def")
 add_library(gModuleTest SHARED src/IISModule/globalmodule.cpp)
+target_compile_options(gModuleTest PRIVATE "/Gz")
 set_target_properties(gModuleTest PROPERTIES LINK_FLAGS ${DEF_DIR})

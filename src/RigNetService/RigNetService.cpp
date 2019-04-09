@@ -76,7 +76,7 @@ CSampleService::~CSampleService(void)
 void CSampleService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 {
     // Log a service start message to the Application log.
-    WriteEventLogEntry(L"CppWindowsService in OnStart",
+    WriteEventLogEntry(L"RigNetService in OnStart",
                        EVENTLOG_INFORMATION_TYPE);
 
     // Queue the main service function for execution in a worker thread.
@@ -91,64 +91,27 @@ void CSampleService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 //
 void CSampleService::ServiceWorkerThread(void)
 {
-    TCHAR dest[MAX_PATH];
-    rignet::tools::GetCurrentPath(dest);
-    size_t len=wcslen(dest)+1;
-    size_t converted=0;
-    char* destStr = (char*)malloc(len*sizeof(char));
-    wcstombs_s(&converted,destStr,len,dest,_TRUNCATE);
-#ifdef SvandexDebug
-    std::ofstream debugLog("c:\\Users\\saictv\\Desktop\\debuglog.txt",std::fstream::out);
-    debugLog<<"start"<<std::endl;
-    debugLog<<destStr<<std::endl;
-#endif
-
-    /*
-    //Get directory to load setting.json
-    LPSTR pt = NULL;
-    if (GetModuleFileNameA(NULL, pt, MAX_PATH) == 0)
-    {
-#ifdef SvandexDebug
-        debugLog<<"Cannot get directory"<<std::endl<<pt<<std::endl;
-#endif
-        // Signal the stopped event.
-        SetEvent(m_hStoppedEvent);
-        return;
-    }
-
-#ifdef SvandexDebug
-        debugLog<<"Directory: "<<std::endl<<pt<<std::endl;
-#endif
-    */
+    auto cpath = svandex::tools::GetCurrentPath();
+	google::InitGoogleLogging("RigNetServiceGlog");
+	google::SetLogDestination(google::GLOG_INFO, (cpath + "\\LogFiles\\").c_str());
+	LOG(INFO) << "glog started.";
 
     tv::Setting *st = tv::Setting::instance();
-    //setting.json
-    //std::string strpt(pt);
-    //int pos = strpt.find_last_of("\\", strpt.length());
-    //st->filepath="C:\\Users\\Public\\Repositories\\RigNet\\data\\setting.json";
-    st->filepath=std::string(destStr)+"\\setting.json";
-#ifdef SvandexDebug
-    debugLog<<"filepath set"<<std::endl;
-#endif
+    st->filepath = cpath + "\\..\\data\\setting.json";
 
     if (!st->LoadSetting())
     {
-#ifdef SvandexDebug
-        debugLog<<"Cannot load setting.json"<<std::endl<<st->filepath<<std::endl;
-#endif
         // Signal the stopped event.
+		LOG(INFO) << "Load Setting faied";
         SetEvent(m_hStoppedEvent);
         return;
     }
 
-#ifdef SvandexDebug
-    debugLog<<"All set, start server"<<std::endl;
-#endif
     server ts;
     //const std::string strlog = strpt.substr(0, pos) + "\\output.log";
     //std::ofstream log(strlog.c_str(), std::fstream::out);
     //std::ofstream log("C:\\Users\\Public\\Softwares\\RigNet-Test\\output.log",std::fstream::out);
-    std::ofstream log(std::string(destStr)+"\\output.log",std::fstream::out);
+	std::ofstream log((cpath + "\\LogFiles\\WebSocketConnection.log").c_str(), std::fstream::out|std::fstream::app);
 
     //logging
     ts.set_message_handler(bind(&on_message, &ts, ::_1, ::_2));
@@ -199,7 +162,7 @@ void CSampleService::ServiceWorkerThread(void)
 void CSampleService::OnStop()
 {
     // Log a service stop message to the Application log.
-    WriteEventLogEntry(L"CppWindowsService in OnStop",
+    WriteEventLogEntry(L"RigNetService in OnStop",
                        EVENTLOG_INFORMATION_TYPE);
 
     // Indicate that the service is stopping and wait for the finish of the
