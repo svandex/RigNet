@@ -6,3 +6,4 @@ thirdparty/*
 .cquery
 test/*
 include/NIdaqmx/*
+CMakeSettings.json
