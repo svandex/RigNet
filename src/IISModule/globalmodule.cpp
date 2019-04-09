@@ -1,6 +1,7 @@
 #define _WINSOCKAPI_
 #include <httpserv.h>
-#include <fstream>
+#include "glog/logging.h"
+#include "Svandex.h"
 
 class MyGlobalModule : public CGlobalModule
 {
@@ -42,7 +43,7 @@ public:
             }
 
             dataChunk2.DataChunkType = HttpDataChunkFromMemory;
-            wchar_t wstrTest1[] = L"안녕하세요"; 
+            wchar_t wstrTest1[] = L"What The Fuck\r\n"; 
             int encodedStrLen = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wstrTest1, -1, szBuffer2, BUFFERLENGTH, NULL, NULL);
 
             dataChunk2.FromMemory.pBuffer = (PVOID) szBuffer2;
@@ -84,8 +85,10 @@ RegisterModule(
 {
     UNREFERENCED_PARAMETER(dwServerVersion);
     UNREFERENCED_PARAMETER(pGlobalInfo);
-    std::fstream fd("C:\\Users\\saictv\\Desktop\\test.txt", std::ios::out | std::ios::app);
-    fd << "success" << std::endl;
+	auto cpath = svandex::tools::GetCurrentPath();
+	google::InitGoogleLogging("RigNetServiceGlog");
+	google::SetLogDestination(google::GLOG_INFO, "C:\\Users\\saictv\\Desktop\\LogFiles\\");
+	LOG(INFO) << "glog started.";
 
     MyGlobalModule *pGlobalModule = new MyGlobalModule;
 

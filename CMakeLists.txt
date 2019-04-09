@@ -42,6 +42,7 @@ target_link_libraries(testapp mysqlcppconn8 boost_system-vc140-mt  pathcch)
 
 #IIS MODULE 
 string(APPEND DEF_DIR "/def:" ${PROJECT_SOURCE_DIR} "/data/iisdef.def")
-add_library(gModuleTest SHARED src/IISModule/globalmodule.cpp)
+add_library(gModuleTest SHARED src/IISModule/globalmodule.cpp src/Svandex.cpp)
 target_compile_options(gModuleTest PRIVATE "/Gz")
 set_target_properties(gModuleTest PROPERTIES LINK_FLAGS ${DEF_DIR})
+target_link_libraries(gModuleTest glog pathcch)
