@@ -1,13 +1,9 @@
 #pragma once
 
 #include <string>
-#include <typeinfo>
-#include <fstream>
 
 #include "Windows.h"
 #include "pathcch.h"
-
-#include "httpserv.h"
 
 namespace svandex{
     namespace tools{

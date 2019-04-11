@@ -7,10 +7,10 @@
 #include "httpserv.h"
 
 //Project header files
-#include "mymodule.h"
-#include "mymodulefactory.h"
+#include "Svandex.h"
+#include "glog/logging.h"
+#include "RigNetModule.h"
 
 //Common
-#include <memory>
-#include <fstream>
+#include <string>
 #endif

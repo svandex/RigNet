@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.14)
 if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
         CACHE STRING "")
@@ -35,11 +35,11 @@ link_directories(
     ${VCPKG_INSTALL_DIR}/lib
     )
 
-add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DGLOG_NO_ABBREVIATED_SEVERITIES)
-set(CMAKE_MFC_FLAG 2)
+set(CMAKE_MFC_FLAG 2)#2 means shared mfc library
 
 #Windows Service
 add_executable(RigNetService src/RigNetService/CppWindowsService.cpp src/RigNetService/RigNetService.cpp src/RigNetService/ServiceBase.cpp src/RigNetService/ServiceInstaller.cpp src/RigNet.cpp src/Svandex.cpp)
+target_compile_definitions(RigNetService PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
 set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
 target_link_libraries(RigNetService mysqlcppconn8 boost_system-vc140-mt  pathcch glog)
 
@@ -48,12 +48,11 @@ add_executable(testapp testMain.cpp src/Svandex.cpp src/RigNet.cpp)
 target_link_libraries(testapp mysqlcppconn8 boost_system-vc140-mt  pathcch glog)
 
 #IIS MODULE 
-add_library(ReqLMod SHARED src/IISModule/main.cpp src/IISModule/precomp.cpp src/IISModule/mymodule.cpp)
-target_compile_options(ReqLMod PRIVATE "/Gz")
-#string(APPEND DEF_DIR "/def:" ${PROJECT_SOURCE_DIR} "/data/iisdef.def")
-#set_target_properties(ReqLMod PROPERTIES LINK_FLAGS ${DEF_DIR})
-target_link_options(ReqLMod PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(ReqLMod PRIVATE "/GUARD:CF")
-target_link_options(ReqLMod PRIVATE "/VERSION:10.00")
-target_link_options(ReqLMod PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(ReqLMod glog::glog pathcch)
+add_library(RigNetModule SHARED src/IISModule/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp)
+target_compile_definitions(RigNetModule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE GLOG_NO_ABBREVIATED_SEVERITIES)
+target_compile_options(RigNetModule PRIVATE "/Gz")
+target_link_options(RigNetModule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
+target_link_options(RigNetModule PRIVATE "/GUARD:CF")
+target_link_options(RigNetModule PRIVATE "/VERSION:10.00")
+target_link_options(RigNetModule PRIVATE "/EXPORT:RegisterModule")
+target_link_libraries(RigNetModule glog::glog pathcch)
