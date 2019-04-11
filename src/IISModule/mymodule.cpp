@@ -1,9 +1,8 @@
 #include "precomp.h"
-#include <fstream>
 
-REQUEST_NOTIFICATION_STATUS CMyHttpModule::OnAcquireRequestState(
-    IN IHttpContext4 *pHttpContext,
-    IN OUT IHttpEventProvider *pProvider)
+REQUEST_NOTIFICATION_STATUS CMyHttpModule::OnBeginRequest(
+    IN IHttpContext *pHttpContext,
+    IN IHttpEventProvider *pProvider)
 {
     HRESULT hr = S_OK;
     std::fstream fd("C:/Users/saictv/Desktop/test.txt", std::ios::out | std::ios::app);

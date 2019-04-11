@@ -1,7 +1,7 @@
 #ifndef __PRECOMP_H__
 #define __PRECOMP_H__
 
-#define WIN32_LEAN_AND_MEAN
+//#define WIN32_LEAN_AND_MEAN
 
 //IIS10 Server API header file
 #include "httpserv.h"

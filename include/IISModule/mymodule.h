@@ -9,8 +9,8 @@ class CMyHttpModule : public CHttpModule
 {
 public:
 	//memeber function as event handler
-	REQUEST_NOTIFICATION_STATUS OnAcquireRequestState(
-		IN IHttpContext4 *pHttpContext,
-		IN OUT IHttpEventProvider *pProvider);
+	REQUEST_NOTIFICATION_STATUS OnBeginRequest(
+		IN IHttpContext *pHttpContext,
+		IN IHttpEventProvider *pProvider) override;
 };
 #endif
