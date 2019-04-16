@@ -42,6 +42,15 @@ public:
         // Remove the class from memory.
         delete this;
     }
+    CRigNetFactory(){
+        google::SetLogDestination(google::GLOG_INFO, "C:/Users/Public/Documents/glogs/");
+        google::InitGoogleLogging("RigNetServiceGlog");
+        LOG(INFO) << "STARTED!!!" << std::endl;
+    }
+    ~CRigNetFactory(){
+        LOG(INFO)<<"SHUTDOWN!!!"<<std::endl;
+        google::ShutdownGoogleLogging();
+    }
 };
 
 // Create the module's exported registration function.
@@ -52,11 +61,13 @@ __stdcall RegisterModule(
     IHttpServer *pGlobalInfo)
 {
     UNREFERENCED_PARAMETER(dwServerVersion);
-    UNREFERENCED_PARAMETER(pGlobalInfo);
+    //UNREFERENCED_PARAMETER(pGlobalInfo);
+    extern IHttpServer *g_HttpServer;
+    g_HttpServer = pGlobalInfo;
 
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
         new CRigNetFactory,
-        RQ_BEGIN_REQUEST,
+		RQ_END_REQUEST | RQ_SEND_RESPONSE,
         0);
 }

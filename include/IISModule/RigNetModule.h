@@ -3,16 +3,10 @@
 class CRigNet : public CHttpModule
 {
 public:
-    CRigNet()
-    {
-        google::InitGoogleLogging("RigNetServiceGlog");
-        google::SetLogDestination(google::GLOG_INFO, "C:/Users/Public/Documents/glogs/");
-    }
-    ~CRigNet(){
-        google::ShutdownGoogleLogging();
-    }
-    REQUEST_NOTIFICATION_STATUS
-    OnBeginRequest(
-        IN IHttpContext *pHttpContext,
-        IN IHttpEventProvider *pProvider);
+	REQUEST_NOTIFICATION_STATUS OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider);
+	//REQUEST_NOTIFICATION_STATUS OnEndRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
+	//REQUEST_NOTIFICATION_STATUS OnBeginRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
+	//REQUEST_NOTIFICATION_STATUS OnReleaseRequestState(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
+	REQUEST_NOTIFICATION_STATUS OnPostEndRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
+	REQUEST_NOTIFICATION_STATUS OnEndRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
 };

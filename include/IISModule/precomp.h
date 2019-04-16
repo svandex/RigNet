@@ -5,6 +5,8 @@
 
 //IIS10 Server API header file
 #include "httpserv.h"
+#include "iiswebsocket.h"
+#include "http.h"
 
 //Project header files
 #include "Svandex.h"
@@ -13,4 +15,5 @@
 
 //Common
 #include <string>
+
 #endif

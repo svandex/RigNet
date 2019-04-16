@@ -29,3 +29,13 @@ std::string svandex::tools::GetCurrentPath()
     free(destStr);
     return returnStr;
 }
+
+std::string svandex::tools::GetEnvVariable(const char *pEnvName)
+{
+    std::vector<std::string> vbuf;
+    char* buf[MAX_PATH];
+    size_t buf_num;
+    _dupenv_s(buf, &buf_num, pEnvName);
+    auto return_value = std::string(*buf);
+    return std::string(*buf);
+}
