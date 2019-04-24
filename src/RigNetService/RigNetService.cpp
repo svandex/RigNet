@@ -91,7 +91,7 @@ void CSampleService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 //
 void CSampleService::ServiceWorkerThread(void)
 {
-    auto cpath = svandex::tools::GetCurrentPath();
+    auto cpath = Svandex::tools::GetCurrentPath();
 	google::InitGoogleLogging("RigNetServiceGlog");
 	google::SetLogDestination(google::GLOG_INFO, (cpath + "\\LogFiles\\").c_str());
 	LOG(INFO) << "glog started.";

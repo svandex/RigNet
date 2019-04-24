@@ -18,7 +18,7 @@ public:
         UNREFERENCED_PARAMETER(pAllocator);
 
         // Create a new instance.
-        CRigNet *pModule = new CRigNet;
+		CRigNet *pModule = new CRigNet;
 
         // Test for an error.
         if (!pModule)
@@ -42,15 +42,6 @@ public:
         // Remove the class from memory.
         delete this;
     }
-    CRigNetFactory(){
-        google::SetLogDestination(google::GLOG_INFO, "C:/Users/Public/Documents/glogs/");
-        google::InitGoogleLogging("RigNetServiceGlog");
-        LOG(INFO) << "STARTED!!!" << std::endl;
-    }
-    ~CRigNetFactory(){
-        LOG(INFO)<<"SHUTDOWN!!!"<<std::endl;
-        google::ShutdownGoogleLogging();
-    }
 };
 
 // Create the module's exported registration function.
@@ -67,7 +58,7 @@ __stdcall RegisterModule(
 
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
-        new CRigNetFactory,
-		RQ_END_REQUEST | RQ_SEND_RESPONSE,
+		new CRigNetFactory,
+		RQ_AUTHENTICATE_REQUEST | RQ_SEND_RESPONSE,
         0);
 }

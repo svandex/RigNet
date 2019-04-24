@@ -18,7 +18,7 @@ Date: 2018-10-30
 int main(int argc, char *argv[])
 {
     tv::Setting *tvs = tv::Setting::instance();
-	tvs->filepath = svandex::tools::GetCurrentPath() + "/setting.json";
+	tvs->filepath = Svandex::tools::GetCurrentPath() + "/setting.json";
     //Load Setting from setting.json in project root path
     if (!tvs->LoadSetting())
     {
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
         ts.set_access_channels(websocketpp::log::alevel::disconnect);
         ts.set_access_channels(websocketpp::log::alevel::app);
 
-        log.open((svandex::tools::GetCurrentPath()+"output.log").c_str());
+        log.open((Svandex::tools::GetCurrentPath()+"output.log").c_str());
         ts.get_alog().set_ostream(&log);
         ts.get_elog().set_ostream(&log);
 

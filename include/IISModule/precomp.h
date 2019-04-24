@@ -6,11 +6,10 @@
 //IIS10 Server API header file
 #include "httpserv.h"
 #include "iiswebsocket.h"
-#include "http.h"
+#include "httptrace.h"
 
 //Project header files
 #include "Svandex.h"
-#include "glog/logging.h"
 #include "RigNetModule.h"
 
 //Common

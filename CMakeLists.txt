@@ -48,7 +48,7 @@ add_executable(testapp testMain.cpp src/Svandex.cpp src/RigNet.cpp)
 target_link_libraries(testapp mysqlcppconn8 boost_system-vc140-mt  pathcch glog)
 
 #IIS MODULE 
-add_library(RigNetModule SHARED src/IISModule/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp thirdparty/base64.c)
+add_library(RigNetModule SHARED src/IISModule/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp)
 target_compile_definitions(RigNetModule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE GLOG_NO_ABBREVIATED_SEVERITIES)
 target_compile_options(RigNetModule PRIVATE "/Gz")
 target_link_options(RigNetModule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
