@@ -28,6 +28,8 @@ SAE_WEBSOCKET				websocket support in IIS
 #include <vector>
 #include <future>
 #include <mutex>
+#include <functional>
+#include <chrono>
 
 namespace Svandex{
     namespace tools{
@@ -38,13 +40,20 @@ namespace Svandex{
 
 #ifdef SAE_WEBSOCKET
 	class WebSocket{
+		typedef std::function<HRESULT(std::vector<char>&, std::vector<char>&)> WebSocketFunctor;
 	public:
-		WebSocket(IHttpServer *is, IHttpContext *ic);
+		WebSocket(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
 		//ReadAsync and WriteAsync share the same CompletionContext
 		HRESULT run();
+		IWebSocketContext* pWebSocketContext() {
+			return piwc;
+		}
 		~WebSocket() {
 			piwc = nullptr;
 		}
+
+		//WebSocket Read Once
+		HRESULT readonce();
 
 	public:
 		//buffer for one operation
@@ -52,19 +61,17 @@ namespace Svandex{
 		std::vector<char> m_writ_once;
 		std::vector<char> m_buf;
 
-		//mutex
-		std::mutex m_mut;
-
 		//number of bytes in each read operation
 		DWORD m_read_bytes;
+		//functor to operate after websocket read has finished
+		WebSocketFunctor m_opreation_functor;
+		//finish
+		BOOL m_ffinish;
 
-		//whether async functor has been completed
-		BOOL m_fCompletionExpected;
-		BOOL m_ffinalfragment;
 	private:
-		void init_read_flags();
 		//IHttpServer will handle cleaness of IHttpStoredContext
 		IWebSocketContext *piwc = nullptr;
+
 
 		//IHttp- variable
 		IHttpServer* m_HttpServer;
@@ -73,6 +80,10 @@ namespace Svandex{
 		//read flags
 		BOOL m_fisutf8;
 		BOOL m_fconnectionclose;
+
+		//whether async functor has been completed
+		BOOL m_fCompletionExpected;
+		BOOL m_ffinalfragment;
     };
 
 	namespace functor {

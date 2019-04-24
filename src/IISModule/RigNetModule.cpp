@@ -1,13 +1,5 @@
 ﻿#include "precomp.h"
 
-void WINAPI pfReadAsync(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
-	Svandex::WebSocket* pws = (Svandex::WebSocket*)completionContext;
-	pws->m_writ_once.push_back('n');
-	pws->m_writ_once.push_back('b');
-}
-void WINAPI pfWritAsync(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
-}
-
 REQUEST_NOTIFICATION_STATUS CRigNet::OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider)
 try {
 	UNREFERENCED_PARAMETER(pProvider);
@@ -113,7 +105,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 	// Create an HRESULT to receive return values from methods.
 	HRESULT hr = S_OK;
 	if (pHttpRequest != NULL && pHttpResponse != NULL) {
-		Svandex::WebSocket ws(g_HttpServer, pHttpContext);
+		Svandex::WebSocket ws(g_HttpServer, pHttpContext, RigNetMain);
 		ws.run();
 		return RQ_NOTIFICATION_CONTINUE;
 	}
@@ -124,4 +116,10 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 		return RQ_NOTIFICATION_CONTINUE;
 	}
 		return RQ_NOTIFICATION_CONTINUE;
+}
+
+HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
+	WebSocketWritLine.push_back('L');
+	WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), WebSocketReadLine.begin());
+	return S_OK;
 }

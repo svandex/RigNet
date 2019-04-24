@@ -40,7 +40,7 @@ std::string Svandex::tools::GetEnvVariable(const char *pEnvName)
     return std::string(*buf);
 }
 
-Svandex::WebSocket::WebSocket(IHttpServer *is, IHttpContext *ic)
+Svandex::WebSocket::WebSocket(IHttpServer *is, IHttpContext *ic, Svandex::WebSocket::WebSocketFunctor wsf)
 	:m_HttpServer(is), m_HttpContext(ic) {
 	IHttpContext3 *pHttpContext3;
 	HRESULT hr = S_OK;
@@ -59,62 +59,50 @@ Svandex::WebSocket::WebSocket(IHttpServer *is, IHttpContext *ic)
 		}
 	}
 
-
 	//variable member initialization
 	m_read_bytes = 10;
+	m_opreation_functor = wsf;
 
 	//flags
 	m_fisutf8 = TRUE;
 	m_ffinalfragment = FALSE;
 	m_fconnectionclose = FALSE;
-}
-
-void Svandex::WebSocket::init_read_flags() {
-	m_fisutf8 = TRUE;
-	m_fconnectionclose = FALSE;
+	m_fCompletionExpected = FALSE;
 }
 
 HRESULT Svandex::WebSocket::run()try {
 	HRESULT hr = S_OK;
-	BOOL fReadSuccess = TRUE;
-	DWORD read_bytes = 0;
 
 	//WebSocket member initialization
-	m_buf.reserve(m_read_bytes);
-	m_fCompletionExpected = FALSE;
+	DWORD read_bytes = m_read_bytes;
+	m_buf.resize(m_read_bytes);
 	//LOOP
-	while (TRUE) {
-		//read operation
-		hr = piwc->ReadFragment(m_buf.data(), &read_bytes, TRUE, &m_fisutf8, &m_ffinalfragment, &m_fconnectionclose, Svandex::functor::ReadAsyncCompletion, this, &m_fCompletionExpected);
-
-		if (m_fconnectionclose) {
-			piwc->CloseTcpConnection();
-			break;
-		}
-
-		if (m_ffinalfragment) {
-			if (m_fconnectionclose) {
-				piwc->CloseTcpConnection();
-				break;
-			}
-			//After read operation finished, do your own work here
-			m_writ_once.push_back('h');
-			m_writ_once.push_back('e');
-			m_writ_once.push_back('l');
-			m_writ_once.push_back('l');
-			m_writ_once.push_back('o');
-
-			//write operation
-			DWORD writ_bytes = m_writ_once.size();
-			hr = piwc->WriteFragment(m_writ_once.data(), &writ_bytes, TRUE, TRUE, TRUE, Svandex::functor::WritAsyncCompletion, this, &m_fCompletionExpected);
-
-			//final stage
-			m_read_once.clear();
-			m_writ_once.clear();
-			m_buf.clear();
-			m_ffinalfragment = FALSE;
-		}
+	m_ffinish = FALSE;
+	/*
+	hr = readonce();
+	if (FAILED(hr)) {
+		hr = HRESULT_FROM_WIN32(ERROR_FILE_INVALID);
+		return hr;
 	}
+	while (!m_ffinish) {
+		using namespace std::chrono_literals;
+		std::this_thread::sleep_for(1ms);
+	}
+*/
+	if (!piwc) {
+		hr = HRESULT_FROM_WIN32(ERROR_FILE_INVALID);
+		return hr;
+	}
+	std::thread t([this]() {
+		HRESULT hr;
+		hr = this->readonce();
+		while (!this->m_ffinish) {
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(1ms);
+		}
+		return hr;
+		});
+	t.join();
 	return hr;
 }
 catch (std::exception &e) {
@@ -124,8 +112,15 @@ catch (std::exception &e) {
 	return hr;
 }
 
+HRESULT Svandex::WebSocket::readonce() {
+	DWORD read_bytes = m_buf.size();
+	HRESULT hr = piwc->ReadFragment(m_buf.data(), &read_bytes, TRUE, &m_fisutf8, &m_ffinalfragment, &m_fconnectionclose, Svandex::functor::ReadAsyncCompletion, this, &m_fCompletionExpected);
+	return hr;
+}
+
 void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
 	Svandex::WebSocket* pws = (Svandex::WebSocket*)completionContext;
+	HRESULT hrac;
 	if (!FAILED(hr) && cbio > 0) {
 		if (pws->m_read_once.capacity() - pws->m_read_once.size() < cbio) {
 			pws->m_read_once.reserve(pws->m_read_once.capacity() + pws->m_read_bytes);
@@ -133,8 +128,29 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 		//merge m_buf to m_read_once
 		pws->m_read_once.insert(pws->m_read_once.end(), pws->m_buf.begin(), pws->m_buf.end());
 	}
+	if (fClose) {
+		pws->pWebSocketContext()->CloseTcpConnection();
+		pws->m_ffinish = TRUE;
+		return;
+	}
+	if (fFinalFragment) {//write operation
+		hr = pws->m_opreation_functor(pws->m_read_once, pws->m_writ_once);
+		DWORD writ_bytes = pws->m_writ_once.size();
+		hr = pws->pWebSocketContext()->WriteFragment(pws->m_writ_once.data(), &writ_bytes, TRUE, TRUE, TRUE, Svandex::functor::WritAsyncCompletion, pws);
+		pws->m_read_once.clear();
+	}
+	else {
+		hrac = pws->readonce();
+		if (FAILED(hrac)) {
+			pws->pWebSocketContext()->CloseTcpConnection();
+			pws->m_ffinish = TRUE;
+			return;
+		}
+	}
+	pws->m_buf.clear();
 }
 
 void WINAPI Svandex::functor::WritAsyncCompletion(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
 	Svandex::WebSocket* pws = (Svandex::WebSocket*)completionContext;
+	pws->m_writ_once.clear();
 }
