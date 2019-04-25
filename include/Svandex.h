@@ -39,21 +39,38 @@ namespace Svandex{
     }
 
 #ifdef SAE_WEBSOCKET
-	class WebSocket{
+	class WebSocket :public IHttpStoredContext {
+		/*
+		Singleton class, used to implement WebSocket Protocol
+
+
+		*/
 		typedef std::function<HRESULT(std::vector<char>&, std::vector<char>&)> WebSocketFunctor;
 	public:
-		WebSocket(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
 		//ReadAsync and WriteAsync share the same CompletionContext
 		HRESULT run();
+
+		//singleton
+		static WebSocket* getInstance(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
+
+		//pointer to WebSocket Context
 		IWebSocketContext* pWebSocketContext() {
 			return piwc;
 		}
 		~WebSocket() {
+			m_pself = nullptr;
 			piwc = nullptr;
 		}
 
 		//WebSocket Read Once
 		HRESULT readonce();
+
+		//Clean Up Context
+		void CleanupStoredContext() {
+			piwc = nullptr;
+			m_pself = nullptr;
+			delete this;
+		}
 
 	public:
 		//buffer for one operation
@@ -65,23 +82,31 @@ namespace Svandex{
 		DWORD m_read_bytes;
 		//functor to operate after websocket read has finished
 		WebSocketFunctor m_opreation_functor;
-		//finish
-		BOOL m_ffinish;
-
+		//http context
+		IHttpContext* m_HttpContext;
+		//promise
+		std::promise<BOOL> m_promise;
+		//public mutex
+		std::mutex m_pub_mutex;
+		//read times
+		DWORD m_num = 0;
 	private:
+		WebSocket(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
+	private:
+		//singleton
+		static WebSocket* m_pself;
+		//mutex
+		static std::mutex m_mutex;
 		//IHttpServer will handle cleaness of IHttpStoredContext
-		IWebSocketContext *piwc = nullptr;
+		static IWebSocketContext *piwc;
 
 
 		//IHttp- variable
 		IHttpServer* m_HttpServer;
-		IHttpContext* m_HttpContext;
 
 		//read flags
 		BOOL m_fisutf8;
 		BOOL m_fconnectionclose;
-
-		//whether async functor has been completed
 		BOOL m_fCompletionExpected;
 		BOOL m_ffinalfragment;
     };

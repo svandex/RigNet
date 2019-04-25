@@ -90,6 +90,10 @@ catch (std::exception &e) {
 }
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo) {
+	extern IHttpServer *g_HttpServer;
+	Svandex::WebSocket* ws = Svandex::WebSocket::getInstance(g_HttpServer, pHttpContext, RigNetMain);
+	ws->m_promise.get_future().wait();
+	ws->pWebSocketContext()->CloseTcpConnection();
 	return RQ_NOTIFICATION_CONTINUE;
 }
 
@@ -98,28 +102,14 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 
 	extern IHttpServer *g_HttpServer;
 
-	// Retrieve a pointer to the request
-	IHttpRequest *pHttpRequest = pHttpContext->GetRequest();
-	// Retrieve a pointer to the response.
-	IHttpResponse *pHttpResponse = pHttpContext->GetResponse();
-	// Create an HRESULT to receive return values from methods.
-	HRESULT hr = S_OK;
-	if (pHttpRequest != NULL && pHttpResponse != NULL) {
-		Svandex::WebSocket ws(g_HttpServer, pHttpContext, RigNetMain);
-		ws.run();
-		return RQ_NOTIFICATION_CONTINUE;
-	}
-	else
-	{
-		pHttpContext->GetTraceContext()->QuickTrace(L"Cannot get IhttpRequest or IhttpRespose pointer.");
-		// End additional processing.
-		return RQ_NOTIFICATION_CONTINUE;
-	}
-		return RQ_NOTIFICATION_CONTINUE;
+	Svandex::WebSocket* ws = Svandex::WebSocket::getInstance(g_HttpServer, pHttpContext, RigNetMain);
+	ws->readonce();
+	return RQ_NOTIFICATION_PENDING;
 }
 
 HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
 	WebSocketWritLine.push_back('L');
-	WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), WebSocketReadLine.begin());
+	WebSocketWritLine.reserve(WebSocketWritLine.size() + WebSocketReadLine.size());
+	WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), WebSocketReadLine.end());
 	return S_OK;
 }
