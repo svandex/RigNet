@@ -92,8 +92,13 @@ catch (std::exception &e) {
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo) {
 	extern IHttpServer *g_HttpServer;
 	Svandex::WebSocket* ws = Svandex::WebSocket::getInstance(g_HttpServer, pHttpContext, RigNetMain);
+	/*
+	using namespace std::chrono_literals;
+	ws->m_promise.get_future().wait_for(5min);
+	*/
 	ws->m_promise.get_future().wait();
-	ws->pWebSocketContext()->CloseTcpConnection();
+	ws->pWebSocketContext()->SendConnectionClose(FALSE, 1000);
+	ws->cleanup();
 	return RQ_NOTIFICATION_CONTINUE;
 }
 

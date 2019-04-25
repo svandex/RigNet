@@ -22,6 +22,7 @@ SAE_WEBSOCKET				websocket support in IIS
 
 #ifdef SAE_WEBSOCKET
 #include "httpserv.h"
+#include "httptrace.h"
 #include "iiswebsocket.h"
 #endif
 
@@ -39,7 +40,7 @@ namespace Svandex{
     }
 
 #ifdef SAE_WEBSOCKET
-	class WebSocket :public IHttpStoredContext {
+	class WebSocket {
 		/*
 		Singleton class, used to implement WebSocket Protocol
 
@@ -53,24 +54,20 @@ namespace Svandex{
 		//singleton
 		static WebSocket* getInstance(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
 
+		//deleter
+		static void cleanup() {
+			piwc = nullptr;
+			delete m_pself;
+			m_pself = nullptr;
+		}
+
 		//pointer to WebSocket Context
 		IWebSocketContext* pWebSocketContext() {
 			return piwc;
 		}
-		~WebSocket() {
-			m_pself = nullptr;
-			piwc = nullptr;
-		}
 
 		//WebSocket Read Once
 		HRESULT readonce();
-
-		//Clean Up Context
-		void CleanupStoredContext() {
-			piwc = nullptr;
-			m_pself = nullptr;
-			delete this;
-		}
 
 	public:
 		//buffer for one operation
