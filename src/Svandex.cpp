@@ -138,14 +138,19 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 			pws->m_read_once.insert(pws->m_read_once.end(), pws->m_buf.begin(), pws->m_buf.begin() + cbio);
 		}
 		while (!fFinalFragment) {
+			BOOL tCompletionExpected = FALSE;
+
+			//read after write
+			/*
 			DWORD t_writ = 0;
-			BOOL t_fce = FALSE;
-			hrac = pws->pWebSocketContext()->WriteFragment((PVOID)"noasync", &t_writ, TRUE, TRUE, TRUE, Svandex::functor::fNULL, NULL, &t_fce);
+			hrac = pws->pWebSocketContext()->WriteFragment((PVOID)"noasync", &t_writ, TRUE, TRUE, TRUE, Svandex::functor::fNULL, NULL, &tCompletionExpected);
+			*/
+			pws->pWebSocketContext()->CancelOutstandingIO();
 
 			//read again
 			cbio = 10;
 			pws->m_buf.resize(pws->m_read_bytes);
-			hrac = pws->pWebSocketContext()->ReadFragment(pws->m_buf.data(), &cbio, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, Svandex::functor::fNULL, NULL, &t_fce);
+			hrac = pws->pWebSocketContext()->ReadFragment(pws->m_buf.data(), &cbio, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, Svandex::functor::fNULL, NULL, &tCompletionExpected);
 
 			//has read
 			if (cbio > 0) {

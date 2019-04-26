@@ -1,6 +1,6 @@
 .vscode/*
 bin/*
-build/*
+build*/*
 thirdparty/*
 .vs/*
 .cquery

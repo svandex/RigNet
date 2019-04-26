@@ -98,14 +98,13 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpCon
 	*/
 	ws->m_promise.get_future().wait();
 	ws->pWebSocketContext()->CloseTcpConnection();
+	ws->CleanupStoredContext();
 	return RQ_NOTIFICATION_CONTINUE;
 }
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHttpContext, IN IAuthenticationProvider* pProvider) {
 	UNREFERENCED_PARAMETER(pProvider);
-
 	extern IHttpServer *g_HttpServer;
-
 	Svandex::WebSocket* ws = Svandex::WebSocket::getInstance(g_HttpServer, pHttpContext, RigNetMain);
 	ws->StateMachine();
 	return RQ_NOTIFICATION_PENDING;
