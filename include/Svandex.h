@@ -73,7 +73,7 @@ namespace Svandex{
 		std::vector<char> m_buf;
 
 		//number of bytes in each read operation
-		DWORD m_read_bytes;
+		DWORD m_buf_size;
 		//functor to operate after websocket read has finished
 		WebSocketFunctor m_opreation_functor;
 		//http context

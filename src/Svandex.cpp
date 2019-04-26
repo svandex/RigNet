@@ -69,7 +69,7 @@ Svandex::WebSocket::WebSocket(IHttpServer *is, IHttpContext *ic, Svandex::WebSoc
 			}
 		}
 		//variable member initialization
-		m_read_bytes = 10;
+		m_buf_size = 10;
 		m_opreation_functor = wsf;
 
 		//flags
@@ -79,7 +79,7 @@ Svandex::WebSocket::WebSocket(IHttpServer *is, IHttpContext *ic, Svandex::WebSoc
 		m_fCompletionExpected = FALSE;
 
 		//buf initialization
-		m_buf.reserve(m_read_bytes);
+		m_buf.reserve(m_buf_size);
 	}
 	//TODO: set named context into IHttpContext, easy to manage memory
 }
@@ -89,8 +89,8 @@ HRESULT Svandex::WebSocket::StateMachine() {
 	Main Thread
 	Controlling read cycle, need syncronization from readAsycn and writAsyc thread
 	*/
-	DWORD read_bytes = m_read_bytes;
-	m_buf.resize(m_read_bytes);
+	DWORD read_bytes = m_buf_size;
+	m_buf.resize(m_buf_size);
 	HRESULT hr = piwc->ReadFragment(m_buf.data(), &read_bytes, TRUE, &m_fisutf8, &m_ffinalfragment, &m_fconnectionclose, Svandex::functor::ReadAsyncCompletion, this, &m_fCompletionExpected);
 	while (TRUE) {
 		std::unique_lock<std::mutex> lk(m_pub_mutex);
@@ -101,8 +101,8 @@ HRESULT Svandex::WebSocket::StateMachine() {
 		if (m_close) {
 			break;
 		}
-		read_bytes = m_read_bytes;
-		m_buf.resize(m_read_bytes);
+		read_bytes = m_buf_size;
+		m_buf.resize(m_buf_size);
 		HRESULT hr = piwc->ReadFragment(m_buf.data(), &read_bytes, TRUE, &m_fisutf8, &m_ffinalfragment, &m_fconnectionclose, Svandex::functor::ReadAsyncCompletion, this, &m_fCompletionExpected);
 	}
 	m_promise.set_value(TRUE);
@@ -149,7 +149,7 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 
 			//read again
 			cbio = 10;
-			pws->m_buf.resize(pws->m_read_bytes);
+			pws->m_buf.resize(pws->m_buf_size);
 			hrac = pws->pWebSocketContext()->ReadFragment(pws->m_buf.data(), &cbio, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, Svandex::functor::fNULL, NULL, &tCompletionExpected);
 
 			//has read
