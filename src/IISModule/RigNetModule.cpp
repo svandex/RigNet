@@ -91,22 +91,26 @@ catch (std::exception &e) {
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo) {
 	extern IHttpServer *g_HttpServer;
-	Svandex::WebSocket* ws = Svandex::WebSocket::getInstance(g_HttpServer, pHttpContext, RigNetMain);
-	/*
-	using namespace std::chrono_literals;
-	ws->m_promise.get_future().wait_for(5min);
-	*/
-	ws->m_promise.get_future().wait();
-	ws->pWebSocketContext()->CloseTcpConnection();
-	ws->CleanupStoredContext();
+	IHttpContext3 *pHttpContext3;
+	HRESULT hr = HttpGetExtendedInterface(g_HttpServer,pHttpContext, &pHttpContext3);
+	IWebSocketContext* pWebSocket = (IWebSocketContext*) pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
+	if (pWebSocket) {
+		m_websocket_cont.get_future().wait();
+	}
 	return RQ_NOTIFICATION_CONTINUE;
 }
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHttpContext, IN IAuthenticationProvider* pProvider) {
 	UNREFERENCED_PARAMETER(pProvider);
 	extern IHttpServer *g_HttpServer;
-	Svandex::WebSocket* ws = Svandex::WebSocket::getInstance(g_HttpServer, pHttpContext, RigNetMain);
-	ws->StateMachine();
+	Svandex::WebSocket pWebSocket(g_HttpServer, pHttpContext, RigNetMain);
+	/*
+	IHttpContext3 *pHttpContext3;
+	hr = HttpGetExtendedInterface(g_HttpServer,pHttpContext, &pHttpContext3);
+	pHttpContext3->GetNamedContextContainer()->SetNamedContext(&pWebSocket, SVANDEX_STOREDCONTEXT);
+	*/
+	pWebSocket.StateMachine();
+	m_websocket_cont.set_value(TRUE);
 	return RQ_NOTIFICATION_PENDING;
 }
 
