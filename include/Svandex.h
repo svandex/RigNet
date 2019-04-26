@@ -40,7 +40,7 @@ namespace Svandex{
     }
 
 #ifdef SAE_WEBSOCKET
-	class WebSocket {
+	class WebSocket :public IHttpStoredContext {
 		/*
 		Singleton class, used to implement WebSocket Protocol
 
@@ -48,14 +48,11 @@ namespace Svandex{
 		*/
 		typedef std::function<HRESULT(std::vector<char>&, std::vector<char>&)> WebSocketFunctor;
 	public:
-		//ReadAsync and WriteAsync share the same CompletionContext
-		HRESULT run();
-
 		//singleton
 		static WebSocket* getInstance(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
 
 		//deleter
-		static void cleanup() {
+		void CleanupStoredContext(){
 			piwc = nullptr;
 			delete m_pself;
 			m_pself = nullptr;
@@ -66,8 +63,8 @@ namespace Svandex{
 			return piwc;
 		}
 
-		//WebSocket Read Once
-		HRESULT readonce();
+		//state machine
+		HRESULT StateMachine();
 
 	public:
 		//buffer for one operation
@@ -83,10 +80,16 @@ namespace Svandex{
 		IHttpContext* m_HttpContext;
 		//promise
 		std::promise<BOOL> m_promise;
+		//condition variable
+		std::condition_variable m_cv;
 		//public mutex
 		std::mutex m_pub_mutex;
 		//read times
 		DWORD m_num = 0;
+		//flags
+		BOOL m_readmore=FALSE;
+		BOOL m_sm_cont=FALSE;
+		BOOL m_close = FALSE;
 	private:
 		WebSocket(IHttpServer *is, IHttpContext *ic, WebSocketFunctor wsf);
 	private:
@@ -111,6 +114,9 @@ namespace Svandex{
 	namespace functor {
 		void WINAPI ReadAsyncCompletion(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);
 		void WINAPI WritAsyncCompletion(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);
+
+		//Supplementaly
+		void WINAPI fNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose);
 	}
 
 #endif
