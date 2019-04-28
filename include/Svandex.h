@@ -14,14 +14,12 @@ It only support Windows right now ,Linux support is on the way.
 macro:
 
 SAE_WEBSOCKET				websocket support in IIS
-SAE_JSON					json support
-SAE_SQL						sql support
+SAE_RIGNET					saic rig net support
 
 */
 
 #define SAE_WEBSOCKET
-#define SAE_JSON
-#define SAE_SQL
+#define SAE_RIGNET
 
 
 #pragma once
@@ -35,20 +33,82 @@ SAE_SQL						sql support
 #include "iiswebsocket.h"
 #endif
 
-//Windows
+//STL
 #include <string>
 #include <vector>
 #include <future>
 #include <mutex>
 #include <functional>
 #include <chrono>
+#include <map>
 
 namespace Svandex{
     namespace tools{
     //get current path of executable file
     std::string GetCurrentPath();
     std::string GetEnvVariable(const char* pEnvName);
-    }
+
+	/*
+	Delegate to member function of a Class
+	*/
+	template <typename T, typename R, typename... Args>
+	class ClassDelegate
+	{
+	public:
+		ClassDelegate(T *t, R(T::*f)(Args...)) : m_t(t), m_f(f) {}
+
+		R operator()(Args &&... args)
+		{
+			return (m_t->*m_f)(std::forward<Args>(args)...);
+		}
+
+	private:
+		T *m_t;    //When member function called, A object is needed
+		R(T::*m_f) //member function caller
+			(Args...);
+	};
+
+	/*
+	Delegate to non-member function
+
+	This class is very useful for c-based library, which is 
+	very common in automobile industry and commonly set error code
+	as return value.
+	*/
+
+	template <typename R, typename... Args>
+	class FunctionDelegate
+	{
+	public:
+		FunctionDelegate(R(*f)(Args...)) : m_f(f)
+		{
+		}
+		R operator()(Args &&... args)
+		{
+			return (*m_f)(std::forward<Args>(args)...);
+		}
+
+	public:
+		//functor literal name
+
+	private:
+		R(*m_f)
+			(Args...);
+	};
+
+	template <typename T, typename R, typename... Args>
+	ClassDelegate<T, R, Args...> MakeClassDelegate(T *t, R(T::*f)(Args...))
+	{
+		return ClassDelegate<T, R, Args...>(t, f);
+	}
+
+	template <typename R, typename... Args>
+	FunctionDelegate<R, Args...> MakeFunctionDelegate(R(*f)(Args...))
+	{
+		return FunctionDelegate<R, Args...>(f);
+	}
+
+    }//Svandex::tools namespace
 
 #ifdef SAE_WEBSOCKET
 
@@ -119,7 +179,7 @@ namespace Svandex{
 		//contiune state machine
 		BOOL m_sm_cont = FALSE;
 		//exit state machine
-		BOOL m_close = FALSE;
+		BOOL m_sm_close = FALSE;
 
 	private:
 		void reset_arguments() {
@@ -134,7 +194,7 @@ namespace Svandex{
 
 	private:
 		/*
-		IWebSocketContext readfragment argument
+		IWebSocketContext readfragment function argument
 		*/
 		BOOL m_fisutf8;
 		BOOL m_fconnectionclose;
@@ -154,15 +214,12 @@ namespace Svandex{
 
 #endif
 
-#ifdef SAE_JSON
+#ifdef SAE_RIGNET
 #define SVANDEX_RAPIDJSON "RAPIDJSON"
+#define SVANDEX_STL "STL"
 	namespace json {
-		std::string ErrMess(const char* _Mess, const char* _Type = SVANDEX_RAPIDJSON) {
-			return (std::string("{\"") + _Type + "\":\"" + _Mess + "\"}");
-		}
+		std::string ErrMess(const char* _Mess, const char* _Type = SVANDEX_RAPIDJSON);
 	}
 #endif
 
-#ifdef SAE_SQL
-#endif
 }

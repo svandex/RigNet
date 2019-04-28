@@ -102,7 +102,7 @@ HRESULT Svandex::WebSocket::StateMachine() {
 			return m_sm_cont == TRUE;
 			});
 		m_sm_cont = FALSE;
-		if (m_close) {
+		if (m_sm_close) {
 			break;
 		}
 	}
@@ -123,14 +123,14 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 	IWebSocketContext* pWebSocketContext = (IWebSocketContext*)pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
 	if (FAILED(hr)) {
 		pws->m_sm_cont = TRUE;
-		pws->m_close = TRUE;
+		pws->m_sm_close = TRUE;
 		pws->m_cv.notify_all();
 		return;
 	}
 	else {
 		if (fClose) {
 			pws->m_sm_cont = TRUE;
-			pws->m_close = TRUE;
+			pws->m_sm_close = TRUE;
 			pws->m_cv.notify_all();
 			return;
 		}
@@ -163,7 +163,7 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 			}
 			if (FAILED(hrac)) {
 				pws->m_sm_cont = TRUE;
-				pws->m_close = TRUE;
+				pws->m_sm_close = TRUE;
 				pws->m_cv.notify_all();
 				return;
 			}
@@ -181,7 +181,7 @@ void WINAPI Svandex::functor::WritAsyncCompletion(HRESULT hr, PVOID completionCo
 	std::lock_guard<std::mutex> lk(pws->m_pub_mutex);
 	if (FAILED(hr)) {
 		pws->m_sm_cont = TRUE;
-		pws->m_close = TRUE;
+		pws->m_sm_close = TRUE;
 		pws->m_cv.notify_all();
 		return;
 	}
@@ -191,4 +191,8 @@ void WINAPI Svandex::functor::WritAsyncCompletion(HRESULT hr, PVOID completionCo
 }
 
 void WINAPI Svandex::functor::fNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
+}
+
+std::string Svandex::json::ErrMess(const char* _Mess, const char* _Type) {
+	return (std::string("{\"") + _Type + "\":\"" + _Mess + "\"}");
 }
