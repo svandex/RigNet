@@ -90,28 +90,75 @@ catch (std::exception &e) {
 }
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo) {
+	/*
+	Determine whether module has enabled websocket module,
+	other module may also call OnAsyncCompletion
+	*/
 	extern IHttpServer *g_HttpServer;
 	IHttpContext3 *pHttpContext3;
-	HRESULT hr = HttpGetExtendedInterface(g_HttpServer,pHttpContext, &pHttpContext3);
-	IWebSocketContext* pWebSocket = (IWebSocketContext*) pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
+	HRESULT hr = HttpGetExtendedInterface(g_HttpServer, pHttpContext, &pHttpContext3);
+	IWebSocketContext* pWebSocket = (IWebSocketContext*)pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
 	if (pWebSocket) {
+		/*
 		m_websocket_cont.get_future().wait();
+		pWebSocket->CloseTcpConnection();
+		*/
+		return RQ_NOTIFICATION_PENDING;
 	}
-	return RQ_NOTIFICATION_CONTINUE;
+	else {
+		return RQ_NOTIFICATION_CONTINUE;
+	}
 }
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHttpContext, IN IAuthenticationProvider* pProvider) {
 	UNREFERENCED_PARAMETER(pProvider);
 	extern IHttpServer *g_HttpServer;
-	Svandex::WebSocket pWebSocket(g_HttpServer, pHttpContext, RigNetMain);
+
+	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
+	if (pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade) != NULL && pHttpContext->GetConnection()->IsConnected()) {
+		/*
+		IHttpContext3 *pHttpContext3;
+		hr = HttpGetExtendedInterface(g_HttpServer,pHttpContext, &pHttpContext3);
+		pHttpContext3->GetNamedContextContainer()->SetNamedContext(&wsinstance, SVANDEX_STOREDCONTEXT);
+		*/
+		Svandex::WebSocket wsinstance(g_HttpServer, pHttpContext, RigNetMain);
+		wsinstance.StateMachine();
+		//m_websocket_cont.set_value(TRUE);
+
+		/*
+		Since websocket is upgrade from http, normaly we wont use this http request again, which 
+		dosn't contain much infomation from it, merely with weboscket upgrade info. So we return
+		RQ_NOTIFICATION_FINISH_REQUEST to end this connection.
+		*/
+		return RQ_NOTIFICATION_FINISH_REQUEST;
+	}
+	else {
+		return RQ_NOTIFICATION_CONTINUE;
+	}
+}
+
+REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+	return RQ_NOTIFICATION_CONTINUE;
+}
+REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+	UNREFERENCED_PARAMETER(pProvider);
+	extern IHttpServer *g_HttpServer;
 	/*
-	IHttpContext3 *pHttpContext3;
-	hr = HttpGetExtendedInterface(g_HttpServer,pHttpContext, &pHttpContext3);
-	pHttpContext3->GetNamedContextContainer()->SetNamedContext(&pWebSocket, SVANDEX_STOREDCONTEXT);
+	Login Determination
+
+	1. get cache ,if not it means user has not login and then send back login file to it
+	2. get cache , if exist it needs to determine whether the client has access to the file
+
 	*/
-	pWebSocket.StateMachine();
-	m_websocket_cont.set_value(TRUE);
-	return RQ_NOTIFICATION_PENDING;
+	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
+	PCWSTR v_forwardURL = pHttpRequest->GetForwardedUrl();
+
+	return RQ_NOTIFICATION_CONTINUE;
+
+}
+
+REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+	return RQ_NOTIFICATION_CONTINUE;
 }
 
 HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
@@ -125,40 +172,40 @@ HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebS
 	return S_OK;
 }
 
-std::string RigNet::main(std::vector<char>& _websocket_in) try{
+std::string RigNet::main(std::vector<char>& _websocket_in) try {
 	_websocket_in.shrink_to_fit();
 	static std::map<std::string, std::function<std::string(const rapidjson::Document &&msg)>> rig_dispatchlist_map;
 
-    //dispatch initialization
+	//dispatch initialization
 	rig_dispatchlist_map["mysql"] = RigNet::mysql;
 	/*
-    rig_dispatchlist_map["plc"] = rignet_plc;
-    rig_dispatchlist_map["nicard"] = rignet_nicard;
+	rig_dispatchlist_map["plc"] = rignet_plc;
+	rig_dispatchlist_map["nicard"] = rignet_nicard;
 	*/
 
-    rapidjson::Document json_msg;
-//    std::cout<<msg->get_payload().c_str()<<std::endl;
+	rapidjson::Document json_msg;
+	//    std::cout<<msg->get_payload().c_str()<<std::endl;
 	if (json_msg.Parse(_websocket_in.data()).HasParseError())
-    {
-        return Svandex::json::ErrMess("not a json object");
-    }
+	{
+		return Svandex::json::ErrMess("not a json object");
+	}
 
-    if (json_msg.HasMember("comtype")&&json_msg.HasMember("wspid"))
-    {
-        if (json_msg["comtype"].IsString()&&json_msg["wspid"].IsString())
-        {
-            auto f = rig_dispatchlist_map[json_msg["comtype"].GetString()];
+	if (json_msg.HasMember("comtype") && json_msg.HasMember("wspid"))
+	{
+		if (json_msg["comtype"].IsString() && json_msg["wspid"].IsString())
+		{
+			auto f = rig_dispatchlist_map[json_msg["comtype"].GetString()];
 			return f(std::move(json_msg));
-        }
-        else
-        {
+		}
+		else
+		{
 			return Svandex::json::ErrMess("command type member or wspid should exist.");
-        }
-    }
-    else
-    {
+		}
+	}
+	else
+	{
 		return Svandex::json::ErrMess("json has no member named comtype or wspid");
-    }
+	}
 }
 catch (std::exception &e)
 {
@@ -243,7 +290,7 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 	}
 	else
 	{
-		return std::string("{\"rapidjson\":\"mysql result sets empty\"}");
+		return Svandex::json::ErrMess("mysql result sets empty", SVANDEX_STL);
 	}
 
 }

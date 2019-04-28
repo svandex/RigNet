@@ -59,6 +59,6 @@ __stdcall RegisterModule(
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
 		new CRigNetFactory,
-		RQ_AUTHENTICATE_REQUEST | RQ_SEND_RESPONSE,
+		RQ_AUTHENTICATE_REQUEST | RQ_AUTHORIZE_REQUEST,// | RQ_SEND_RESPONSE,
         0);
 }
