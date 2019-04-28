@@ -115,8 +115,139 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 }
 
 HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
-	WebSocketWritLine.push_back('L');
-	WebSocketWritLine.reserve(WebSocketWritLine.size() + WebSocketReadLine.size());
+	/*
 	WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), WebSocketReadLine.end());
+	*/
+	const char* result = RigNet::main(WebSocketReadLine).data();
+	WebSocketWritLine.clear();
+	WebSocketWritLine.reserve(WebSocketWritLine.size() + std::strlen(result));
+	WebSocketWritLine.insert(WebSocketWritLine.end(), result, result + std::strlen(result));
 	return S_OK;
+}
+
+std::string RigNet::main(std::vector<char>& _websocket_in) try{
+	_websocket_in.shrink_to_fit();
+	static std::map<std::string, std::function<std::string(const rapidjson::Document &&msg)>> rig_dispatchlist_map;
+
+    //dispatch initialization
+	rig_dispatchlist_map["mysql"] = RigNet::mysql;
+	/*
+    rig_dispatchlist_map["plc"] = rignet_plc;
+    rig_dispatchlist_map["nicard"] = rignet_nicard;
+	*/
+
+    rapidjson::Document json_msg;
+//    std::cout<<msg->get_payload().c_str()<<std::endl;
+	if (json_msg.Parse(_websocket_in.data()).HasParseError())
+    {
+        return Svandex::json::ErrMess("not a json object");
+    }
+
+    if (json_msg.HasMember("comtype")&&json_msg.HasMember("wspid"))
+    {
+        if (json_msg["comtype"].IsString()&&json_msg["wspid"].IsString())
+        {
+            auto f = rig_dispatchlist_map[json_msg["comtype"].GetString()];
+			return f(std::move(json_msg));
+        }
+        else
+        {
+			return Svandex::json::ErrMess("command type member or wspid should exist.");
+        }
+    }
+    else
+    {
+		return Svandex::json::ErrMess("json has no member named comtype or wspid");
+    }
+}
+catch (std::exception &e)
+{
+	return Svandex::json::ErrMess(e.what(), SVANDEX_STL);
+}
+
+std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
+	/*
+	RigNet::Setting *tvs = RigNet::Setting::instance();
+
+	auto mysql_login = std::string("mysqlx://") + tvs->jsonobj["mysql"]["user"].GetString() + std::string(":") + tvs->jsonobj["mysql"]["pwd"].GetString() + std::string("@") + tvs->jsonobj["mysql"]["ip"].GetString() + std::string(":") + std::to_string(tvs->jsonobj["mysql"]["port"].GetInt()) + std::string("/eslam?ssl-mode=disabled");
+	mysqlx::Session mysql_ss(mysql_login.c_str());
+	*/
+
+	mysqlx::Session mysql_ss("mysqlx://saictv:saictv@localhost:33060/eslam?ssl-mode=disabled");
+	//database selection
+	std::stringstream mysql_db_sel;
+	mysql_db_sel << "use " << json_msg["sql"]["database"].GetString();
+	mysql_ss.sql(mysql_db_sel.str()).execute();
+
+	auto mysql_stm = json_msg["sql"]["statement"].GetString();
+
+	/*see if semicolon is at the end*/
+	auto rsets = mysql_ss.sql(std::string(mysql_stm)).execute();
+
+	if (rsets.hasData())
+	{
+		mysqlx::Row r;
+		rapidjson::StringBuffer sb;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+		/*start object*/
+		writer.StartObject();
+		int l_index = 0;
+		while ((r = rsets.fetchOne()))
+		{
+			writer.Key(std::to_string(l_index).c_str());
+			writer.StartArray();
+			for (unsigned tmp = 0; tmp < r.colCount(); tmp++)
+			{
+				switch (r[tmp].getType()) {
+				case mysqlx::Value::Type::UINT64: writer.Uint64((uint64_t)r[tmp]); break;
+				case mysqlx::Value::Type::INT64: writer.Int64((int64_t)r[tmp]); break;
+				case mysqlx::Value::Type::STRING: writer.String(std::string(r[tmp]).c_str()); break;
+				case mysqlx::Value::Type::DOUBLE: writer.Double((double)r[tmp]); break;
+				case mysqlx::Value::Type::BOOL: writer.Bool((bool)r[tmp]); break;
+				case mysqlx::Value::Type::RAW: {
+					/*
+					r[tmp].print(std::cout);
+					auto vele = r[tmp].getRawBytes();
+					time_t vtime = *(uint32_t*)vele.first * 65536;
+					char buf[256];
+					tm v_tm;
+					gmtime_s(&v_tm, &vtime);
+					ctime_s(buf, 256, &vtime);
+					std::cout << buf << std::endl;
+					asctime_s(buf, 256, &v_tm);
+					std::cout << buf << std::endl;
+					writer.String(buf);
+					break;
+*/
+					writer.String("rawbytes");
+					break;
+				}
+				default:
+					writer.String("null");
+					break;
+
+				}
+			}
+			writer.EndArray();
+
+			l_index++;
+		}
+		//websocket process id return to client
+		writer.Key("wspid");
+		writer.String(json_msg["wspid"].GetString());
+		writer.EndObject();
+		/*end object*/
+
+		return std::string(sb.GetString());
+	}
+	else
+	{
+		return std::string("{\"rapidjson\":\"mysql result sets empty\"}");
+	}
+
+}
+catch (std::exception &e)
+{
+	return Svandex::json::ErrMess(e.what(), SVANDEX_STL);
 }

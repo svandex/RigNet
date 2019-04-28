@@ -11,3 +11,58 @@ public:
 };
 
 HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
+
+namespace RigNet {
+/*
+This class is used to read settings from setting.json file
+*/
+	class Setting
+	{
+	public:
+		static RigNet::Setting *instance()
+		{
+			if (!m_instance)
+			{
+				m_instance = new RigNet::Setting();
+			}
+			return m_instance;
+		}
+
+		bool LoadSetting();
+
+		class deletePTR
+		{
+		public:
+			~deletePTR()
+			{
+				if (RigNet::Setting::m_instance)
+				{
+					delete RigNet::Setting::m_instance;
+				}
+			}
+		};
+
+	private:
+		Setting() {};
+		Setting(const RigNet::Setting &);
+
+	public:
+		std::string filepath = "setting.json";
+		rapidjson::Document jsonobj;
+
+		//ip addr
+		std::string addr_plc;
+		std::string addr_nic;
+		std::string addr_mysql;
+
+	private:
+		static RigNet::Setting *m_instance;
+		static deletePTR del;
+	};
+
+	/*
+	Via WebSocket
+	*/
+		std::string main(std::vector<char> &msg);
+		std::string mysql(const rapidjson::Document &&msg);
+}
