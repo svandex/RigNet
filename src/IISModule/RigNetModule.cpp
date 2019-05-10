@@ -115,16 +115,17 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 	extern IHttpServer *g_HttpServer;
 
 	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
-	if (pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade) != NULL && pHttpContext->GetConnection()->IsConnected()) {
-		/*
-		IHttpContext3 *pHttpContext3;
-		hr = HttpGetExtendedInterface(g_HttpServer,pHttpContext, &pHttpContext3);
-		pHttpContext3->GetNamedContextContainer()->SetNamedContext(&wsinstance, SVANDEX_STOREDCONTEXT);
-		*/
+	IHttpResponse* pHttpResponse = pHttpContext->GetResponse();
+	auto hhc = pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade);
+	if (hhc != NULL && std::strcmp(hhc, "websocket")) {
 		Svandex::WebSocket wsinstance(g_HttpServer, pHttpContext, RigNetMain);
 		wsinstance.StateMachine();
 		//m_websocket_cont.set_value(TRUE);
 
+		IHttpContext3 *pHttpContext3;
+		HRESULT hr = HttpGetExtendedInterface(g_HttpServer, pHttpContext, &pHttpContext3);
+		IWebSocketContext* pWebSocket = (IWebSocketContext*)pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
+		pWebSocket->CloseTcpConnection();
 		/*
 		Since websocket is upgrade from http, normaly we wont use this http request again, which 
 		dosn't contain much infomation from it, merely with weboscket upgrade info. So we return
@@ -133,13 +134,66 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 		return RQ_NOTIFICATION_FINISH_REQUEST;
 	}
 	else {
-		return RQ_NOTIFICATION_CONTINUE;
+		/*
+		HTTP protocol
+		URL is `/data` to get data from server
+		*/
+		// get url
+		PCSTR v_forwardURL;
+		DWORD v_pcchValueLength;
+		HRESULT hr = pHttpContext->GetServerVariable("HTTP_URL", &v_forwardURL, &v_pcchValueLength);
+		if (std::string(v_forwardURL).find("/data") != std::wstring::npos) {
+			IHttpRequest3* pHttpRequest3;
+			HRESULT hr = HttpGetExtendedInterface(g_HttpServer, pHttpRequest, &pHttpRequest3);
+
+			std::vector<char> bufHttpRequest;
+			DWORD cbReceived = 0;
+			bufHttpRequest.reserve(SVANDEX_BUF_SIZE);
+			pHttpRequest3->ReadEntityBody(bufHttpRequest.data(), SVANDEX_BUF_SIZE, TRUE, [](
+				IHttpContext3* pc,
+				IHttpCompletionInfo2* pci,
+				PVOID cc
+				) {
+					auto buf = *(std::vector<char>*)cc;
+					auto result = RigNet::main(buf);
+
+					// Create a data chunk.
+					HTTP_DATA_CHUNK dataChunk;
+					// Set the chunk to a chunk in memory.
+					dataChunk.DataChunkType = HttpDataChunkFromMemory;
+					// Buffer for bytes written of data chunk.
+					DWORD cbSent;
+
+					// Set the chunk to the buffer.
+					dataChunk.FromMemory.pBuffer =
+						(PVOID)result.c_str();
+					// Set the chunk size to the buffer size.
+					dataChunk.FromMemory.BufferLength =
+						(USHORT)strlen(result.c_str());
+					// Insert the data chunk into the response.
+					HRESULT hr = pc->GetResponse()->WriteEntityChunks(
+						&dataChunk, 1, TRUE, TRUE, &cbSent);
+					// Test for an error.
+					if (FAILED(hr))
+					{
+						// Set the HTTP status.
+						pc->GetResponse()->SetStatus(500, "Server Error", 0, hr);
+					}
+						return RQ_NOTIFICATION_CONTINUE;
+					}, &bufHttpRequest, &cbReceived);
+			// End additional processing.
+			return RQ_NOTIFICATION_PENDING;
+		}
+		else {
+			return RQ_NOTIFICATION_CONTINUE;
+		}
 	}
 }
 
 REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
 	return RQ_NOTIFICATION_CONTINUE;
 }
+
 REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
 	UNREFERENCED_PARAMETER(pProvider);
 	extern IHttpServer *g_HttpServer;
@@ -151,7 +205,22 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpCo
 
 	*/
 	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
-	PCWSTR v_forwardURL = pHttpRequest->GetForwardedUrl();
+	// get url
+	PCSTR v_forwardURL;
+	DWORD v_pcchValueLength;
+	HRESULT hr = pHttpContext->GetServerVariable("HTTP_URL", &v_forwardURL, &v_pcchValueLength);
+	//
+	if (std::string(v_forwardURL).find("/loginGateWay") != std::string::npos) {
+		/*
+		localStorage to store permanent data
+		sessionStorage to store session related data
+		*/
+	}
+	else {
+		/*
+		first check if the connection has a sessionid
+		*/
+	}
 
 	return RQ_NOTIFICATION_CONTINUE;
 
@@ -174,6 +243,9 @@ HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebS
 
 std::string RigNet::main(std::vector<char>& _websocket_in) try {
 	_websocket_in.shrink_to_fit();
+	if (_websocket_in.size() == 0) {
+		return "NULL";
+	}
 	static std::map<std::string, std::function<std::string(const rapidjson::Document &&msg)>> rig_dispatchlist_map;
 
 	//dispatch initialization

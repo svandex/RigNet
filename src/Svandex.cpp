@@ -145,15 +145,16 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 
 			//read after write
 			/*
-			DWORD t_writ = 0;
-			hrac = pws->pWebSocketContext()->WriteFragment((PVOID)"noasync", &t_writ, TRUE, TRUE, TRUE, Svandex::functor::fNULL, NULL, &tCompletionExpected);
+			DWORD ZEROn = 0;
+			hrac = pWebSocketContext->WriteFragment(NULL, &ZEROn, TRUE, TRUE, TRUE, Svandex::functor::fNULL, NULL);
 			*/
+
 			pWebSocketContext->CancelOutstandingIO();
 
 			//read again
 			cbio = 10;
 			pws->m_buf.resize(pws->m_buf_size);
-			hrac = pWebSocketContext->ReadFragment(pws->m_buf.data(), &cbio, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, Svandex::functor::fNULL, NULL, &tCompletionExpected);
+			hrac = pWebSocketContext->ReadFragment(pws->m_buf.data(), &cbio, TRUE, &fUTF8Encoded, &fFinalFragment, &fClose, Svandex::functor::fWebSocketNULL, NULL, &tCompletionExpected);
 
 			//has read
 			if (cbio > 0) {
@@ -190,7 +191,7 @@ void WINAPI Svandex::functor::WritAsyncCompletion(HRESULT hr, PVOID completionCo
 	pws->m_cv.notify_all();
 }
 
-void WINAPI Svandex::functor::fNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
+void WINAPI Svandex::functor::fWebSocketNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
 }
 
 std::string Svandex::json::ErrMess(const char* _Mess, const char* _Type) {

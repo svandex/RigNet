@@ -1,8 +1,20 @@
 /*
-#define _WINSOCKAPI_
-#include <windows.h>
-#include <sal.h>
-#include "RigNetModule.h"
+Rig Net Module In IIS
+
+Author: Juncheng Qiu
+Mail: qiujuncheng@saicmotor.com
+Git: https://github.com/svandex/rignet
+license: Apache
+
+features includeing:
+
+1. websocket protocol support
+
+2. login support
+
+3. mysql xdevapi support
+
+
 */
 #include "precomp.h"
 
@@ -59,6 +71,6 @@ __stdcall RegisterModule(
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
 		new CRigNetFactory,
-		RQ_AUTHENTICATE_REQUEST | RQ_AUTHORIZE_REQUEST,// | RQ_SEND_RESPONSE,
+		RQ_AUTHENTICATE_REQUEST,// | RQ_SEND_RESPONSE,
         0);
 }
