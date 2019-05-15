@@ -286,27 +286,29 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 					mysql_db_sel << L"select date_format(`最近更新`,'%Y-%m-%d %T') from `0用户信息` where `会话标识`=\""
 						<< requestJson["sessionId"].GetString() << "\"";
 					auto rsets = mysql_ss.sql(mysql_db_sel.str()).execute();
-					mysqlx::Row r = rsets.fetchOne();
-					//last modified time
-					std::istringstream s_lmtime(std::string(r[0]).c_str());
-					std::tm t = {};
-					s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
-					if (std::difftime(std::time(nullptr), std::mktime(&t)) > SVANDEX_SESSION_EXPIRED) {
-						httpSendBack(pHttpContext, "{\"sessionId\":-1}");
-						mysql_ss.close();
-						break;
+					if (rsets.hasData()) {
+						mysqlx::Row r = rsets.fetchOne();
+						//last modified time
+						std::istringstream s_lmtime(std::string(r[0]).c_str());
+						std::tm t = {};
+						s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
+						if (std::difftime(std::time(nullptr), std::mktime(&t)) > SVANDEX_SESSION_EXPIRED) {
+							httpSendBack(pHttpContext, "{\"sessionId\":-1}");
+							mysql_ss.close();
+							break;
+						}
+						auto result = RigNet::main(bufHttpRequest);
+						httpSendBack(pHttpContext, result);
 					}
-
-					auto result = RigNet::main(bufHttpRequest);
-					httpSendBack(pHttpContext, result);
-					mysql_ss.close();
-					break;
+					else {//no session exist
+						httpSendBack(pHttpContext, "{\"sessionId\":-2}");
+					}
 				}
 				else {
 					httpSendBack(pHttpContext, Svandex::json::ErrMess("-1"));
-					mysql_ss.close();
-					break;
 				}
+				mysql_ss.close();
+				break;
 			}
 			default:
 				break;

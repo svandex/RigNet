@@ -20,6 +20,8 @@
 #include "pathcch.h"
 
 #include "Svandex.h"
+
+#define GLOG_NO_ABBREVIATED_SEVERITIE
 #include "glog/logging.h"
 
 namespace tv

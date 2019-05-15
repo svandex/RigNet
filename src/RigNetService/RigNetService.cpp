@@ -91,47 +91,6 @@ void CSampleService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 //
 void CSampleService::ServiceWorkerThread(void)
 {
-    auto cpath = Svandex::tools::GetCurrentPath();
-	google::InitGoogleLogging("RigNetServiceGlog");
-	google::SetLogDestination(google::GLOG_INFO, (cpath + "\\LogFiles\\").c_str());
-	LOG(INFO) << "glog started.";
-
-    tv::Setting *st = tv::Setting::instance();
-    st->filepath = cpath + "\\..\\data\\setting.json";
-
-    if (!st->LoadSetting())
-    {
-        // Signal the stopped event.
-		LOG(INFO) << "Load Setting faied";
-        SetEvent(m_hStoppedEvent);
-        return;
-    }
-
-    server ts;
-    //const std::string strlog = strpt.substr(0, pos) + "\\output.log";
-    //std::ofstream log(strlog.c_str(), std::fstream::out);
-    //std::ofstream log("C:\\Users\\Public\\Softwares\\RigNet-Test\\output.log",std::fstream::out);
-	std::ofstream log((cpath + "\\LogFiles\\WebSocketConnection.log").c_str(), std::fstream::out|std::fstream::app);
-
-    //logging
-    ts.set_message_handler(bind(&on_message, &ts, ::_1, ::_2));
-
-    //logging
-    ts.set_access_channels(websocketpp::log::alevel::connect);
-    ts.set_access_channels(websocketpp::log::alevel::disconnect);
-    ts.set_access_channels(websocketpp::log::alevel::app);
-
-    ts.get_alog().set_ostream(&log);
-    ts.get_elog().set_ostream(&log);
-
-    //preparation
-    ts.init_asio();
-    ts.listen(websocketpp::lib::asio::ip::tcp::v4(), 9006);
-    ts.start_accept();
-
-    //tvrig_server.run();
-    std::thread t(&server::run, &ts);
-
     // Periodically check if the service is stopping.
     while (!m_fStopping)
     {
@@ -141,10 +100,6 @@ void CSampleService::ServiceWorkerThread(void)
 
     // Signal the stopped event.
     SetEvent(m_hStoppedEvent);
-
-    ts.stop_listening();
-    t.join();
-
 }
 
 //
