@@ -41,12 +41,18 @@ SAE_RIGNET					saic rig net support
 #include <functional>
 #include <chrono>
 #include <map>
+#include <ctime>
+#include <locale>
+#include <sstream>
+#include <iomanip>
 
 namespace Svandex{
     namespace tools{
     //get current path of executable file
     std::string GetCurrentPath();
+	std::string GetCurrentTimeFT();
     std::string GetEnvVariable(const char* pEnvName);
+	std::string GetUUID();
 
 	/*
 	Delegate to member function of a Class
@@ -215,11 +221,13 @@ namespace Svandex{
 #endif
 
 #ifdef SAE_RIGNET
-#define SVANDEX_RAPIDJSON "RAPIDJSON"
-#define SVANDEX_STL "STL"
+#define SVANDEX_RAPIDJSON "rapidjson"
+#define SVANDEX_STL "stl"
 	namespace json {
 		std::string ErrMess(const char* _Mess, const char* _Type = SVANDEX_RAPIDJSON);
 	}
 #endif
 
 }
+
+#define SVANDEX_SESSION_EXPIRED 6000

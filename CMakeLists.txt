@@ -30,7 +30,7 @@ include_directories(
     )
 
 link_directories(
-	${MYSQL_INSTALL_DIR}
+	${MYSQL_INSTALL_DIR}/RelWithDebInfo
     $ENV{NIEXTCCOMPILERSUPP}/lib64/msvc
     ${VCPKG_INSTALL_DIR}/lib
     )
@@ -55,5 +55,5 @@ target_link_options(RigNetModule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
 target_link_options(RigNetModule PRIVATE "/GUARD:CF")
 target_link_options(RigNetModule PRIVATE "/VERSION:10.00")
 target_link_options(RigNetModule PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(RigNetModule PUBLIC pathcch mysqlcppconn8)
+target_link_libraries(RigNetModule PUBLIC pathcch mysqlcppconn8 rpcrt4)
 #target_link_libraries(RigNetModule PRIVATE "$ENV{VCPKG_ROOT}/installed/x64-windows/lib/libeay32.lib" "$ENV{VCPKG_ROOT}/installed/x64-windows/lib/ssleay32.lib")

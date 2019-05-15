@@ -37,4 +37,8 @@ Module header file
 */
 #include "RigNetModule.h"
 
+#define LAB_LOGIN 0
+#define LAB_REGISTER 1
+#define LAB_DATA 2
+
 #endif

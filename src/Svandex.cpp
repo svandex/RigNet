@@ -29,15 +29,43 @@ std::string Svandex::tools::GetCurrentPath()
     free(destStr);
     return returnStr;
 }
+std::string Svandex::tools::GetCurrentTimeFT() {
+	auto t = std::time(nullptr);
+	char strrep[100];
+	std::tm tms;
+	localtime_s(&tms, &t);
+
+	//get char* in specified time format
+	std::strftime(strrep, sizeof(strrep), "%F %T", &tms);
+	std::string str(strrep);
+	str.shrink_to_fit();
+	return str;
+}
 
 std::string Svandex::tools::GetEnvVariable(const char *pEnvName)
 {
-    std::vector<std::string> vbuf;
-    char* buf[MAX_PATH];
-    size_t buf_num;
-    _dupenv_s(buf, &buf_num, pEnvName);
-    auto return_value = std::string(*buf);
-    return std::string(*buf);
+	std::vector<std::string> vbuf;
+	char* buf[MAX_PATH];
+	size_t buf_num;
+	_dupenv_s(buf, &buf_num, pEnvName);
+	auto return_value = std::string(*buf);
+	return std::string(*buf);
+}
+
+std::string Svandex::tools::GetUUID() {
+	UUID uuid;
+	std::string ret;
+	RPC_STATUS ret_val = UuidCreate(&uuid);
+	if (ret_val == RPC_S_OK) {
+		CHAR* wszuuid = NULL;
+		UuidToStringA(&uuid, (RPC_CSTR*)&wszuuid);
+		if (wszuuid != NULL) {
+			ret = wszuuid;
+			RpcStringFreeA((RPC_CSTR*)&wszuuid);
+			return ret;
+		}
+	}
+	return "";
 }
 
 Svandex::WebSocket& Svandex::WebSocket::operator=(Svandex::WebSocket&& ws) {
