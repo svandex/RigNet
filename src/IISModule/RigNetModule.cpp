@@ -162,10 +162,16 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 
 						mysql_db_sel << L"select `角色`,`工号`,`密码`,`联系方式`,`激活`,`会话标识`,date_format(`最近更新`,'%Y-%m-%d %T') from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
 						auto rsets = mysql_ss.sql(mysql_db_sel.str()).execute();
-						if (rsets.hasData()) {//find user
+						if (rsets.count() == 1) {
+						//if (rsets.hasData()) {//find user
 							mysqlx::Row r = rsets.fetchOne();
 
 							//determine type
+							if (r[2].getType() != mysqlx::Value::Type::STRING) {
+								httpSendBack(pHttpContext, Svandex::json::ErrMess("-1"));
+								mysql_ss.close();
+								break;
+							}
 							if (std::string(r[2]) == requestJson["password"].GetString()) {
 								//login successfully
 
@@ -212,11 +218,11 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 								}
 							}
 							else {//password error
-								httpSendBack(pHttpContext, "{\"sessionId\":-2}");
+								httpSendBack(pHttpContext, "{\"sessionId\":-1}");
 							}
 						}
 						else {//no registration
-							httpSendBack(pHttpContext, "{\"sessionId\":-1}");
+							httpSendBack(pHttpContext, "{\"sessionId\":-2}");
 						}
 					}
 					else {//json format parse error
@@ -234,7 +240,8 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 				}
 				else {
 					if (requestJson.HasMember("id") && requestJson.HasMember("password")
-						&& requestJson.HasMember("role") && requestJson.HasMember("contact")) {
+						&& requestJson.HasMember("role") && requestJson.HasMember("contact")
+						&& requestJson.HasMember("name")) {
 						//database selection
 						std::wstringstream mysql_db_sel;
 
@@ -249,25 +256,31 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 
 						mysql_db_sel << L"select * from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
 						auto rsets = mysql_ss.sql(mysql_db_sel.str()).execute();
-						if (rsets.hasData()) {//find user
-							httpSendBack(pHttpContext, "\"registration\":-1");
+						if (rsets.count() == 1) {//find user
+						//if (rsets.hasData()) {//find user
+							httpSendBack(pHttpContext, "{\"registration\":-1}");
 						}
 						else {//registration
 							mysql_db_sel.clear();
 							mysql_db_sel.str(L"");
 							if (std::strcmp(requestJson["password"].GetString(), "") == 0) {
-								httpSendBack(pHttpContext, "\"registration\":-2");
+								httpSendBack(pHttpContext, "{\"registration\":-2}");
 							}
 							else {
-								mysql_db_sel << L"insert into `0用户信息` values("
-									<< requestJson["role"].GetString() << ","
-									<< requestJson["id"].GetString() << ","
-									<< requestJson["password"].GetString() << ","
-									<< requestJson["contact"].GetString() << ","
-									<< "0,\"expired\",\'" 
-									<< Svandex::tools::GetCurrentTimeFT().c_str()
-									<< "\')";
-								auto rsets = mysql_ss.sql(mysql_db_sel.str()).execute();
+								size_t converted;
+								wchar_t dest[5];
+								mbstowcs_s(&converted, dest, requestJson["role"].GetString(), _TRUNCATE);
+								mysql_db_sel << L"insert into `0用户信息` values(\'"
+									<< dest << "\',\'"
+									<< requestJson["id"].GetString() << "\',\'"
+									<< requestJson["password"].GetString() << "\',\'"
+									<< requestJson["contact"].GetString() << "\',"
+									<< "0,\'expired\',\'" 
+									<< Svandex::tools::GetCurrentTimeFT().c_str()<< "\',\'"
+									<< requestJson["name"].GetString()
+									<<"\')";
+								mysql_ss.sql(mysql_db_sel.str()).execute();
+								httpSendBack(pHttpContext, "{\"registration\":0}");
 							}
 						}
 					}
