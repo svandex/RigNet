@@ -127,6 +127,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 		URL is `/data` to get data from server
 		*/
 		// get url
+
 		std::map<std::string, int> urlmap;
 		urlmap["/login"] = LAB_LOGIN;
 		urlmap["/register"] = LAB_REGISTER;
@@ -267,17 +268,14 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 								httpSendBack(pHttpContext, "{\"registration\":-2}");
 							}
 							else {
-								size_t converted;
-								wchar_t dest[5];
-								mbstowcs_s(&converted, dest, requestJson["role"].GetString(), _TRUNCATE);
 								mysql_db_sel << L"insert into `0用户信息` values(\'"
-									<< dest << "\',\'"
+									<< winrt::to_hstring(requestJson["role"].GetString()).c_str() << "\',\'"
 									<< requestJson["id"].GetString() << "\',\'"
 									<< requestJson["password"].GetString() << "\',\'"
 									<< requestJson["contact"].GetString() << "\',"
 									<< "0,\'expired\',\'" 
 									<< Svandex::tools::GetCurrentTimeFT().c_str()<< "\',\'"
-									<< requestJson["name"].GetString()
+									<< winrt::to_hstring(requestJson["name"].GetString()).c_str()
 									<<"\')";
 								mysql_ss.sql(mysql_db_sel.str()).execute();
 								httpSendBack(pHttpContext, "{\"registration\":0}");
@@ -445,10 +443,12 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 	mysql_db_sel << "use " << json_msg["sql"]["database"].GetString();
 	mysql_ss.sql(mysql_db_sel.str()).execute();
 
-	auto mysql_stm = json_msg["sql"]["statement"].GetString();
+	auto mysql_stm = winrt::to_hstring(json_msg["sql"]["statement"].GetString()).c_str();
+	
+	//TODO: unicode char conversion
 
 	/*see if semicolon is at the end*/
-	auto rsets = mysql_ss.sql(std::string(mysql_stm)).execute();
+	auto rsets = mysql_ss.sql(mysql_stm).execute();
 
 	if (rsets.hasData())
 	{

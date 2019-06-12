@@ -41,4 +41,6 @@ Module header file
 #define LAB_REGISTER 1
 #define LAB_DATA 2
 
+#include "winrt/Windows.Foundation.h"
+
 #endif

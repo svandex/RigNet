@@ -5,7 +5,7 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 project(RigNet)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
@@ -47,10 +47,10 @@ target_link_libraries(RigNetService mysqlcppconn8 pathcch rpcrt4)
 
 #IIS MODULE 
 add_library(RigNetModule SHARED src/IISModule/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp)
-target_compile_definitions(RigNetModule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
+target_compile_definitions(RigNetModule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
 target_compile_options(RigNetModule PRIVATE "/Gz")
 target_link_options(RigNetModule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
 target_link_options(RigNetModule PRIVATE "/GUARD:CF")
 target_link_options(RigNetModule PRIVATE "/VERSION:1.00")
 target_link_options(RigNetModule PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(RigNetModule PUBLIC mysqlcppconn8 pathcch rpcrt4)
+target_link_libraries(RigNetModule PUBLIC mysqlcppconn8 pathcch rpcrt4 windowsapp)
