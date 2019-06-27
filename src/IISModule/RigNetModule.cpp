@@ -115,7 +115,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 		IWebSocketContext* pWebSocket = (IWebSocketContext*)pHttpContext3->GetNamedContextContainer()->GetNamedContext(IIS_WEBSOCKET);
 		pWebSocket->CloseTcpConnection();
 		/*
-		Since websocket is upgrade from http, normaly we wont use this http request again, which 
+		Since websocket is upgrade from http, normaly we wont use this http request again, which
 		dosn't contain much infomation from it, merely with weboscket upgrade info. So we return
 		RQ_NOTIFICATION_FINISH_REQUEST to end this connection.
 		*/
@@ -164,7 +164,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 						mysql_db_sel << L"select `角色`,`工号`,`密码`,`联系方式`,`激活`,`会话标识`,date_format(`最近更新`,'%Y-%m-%d %T') from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
 						auto rsets = mysql_ss.sql(mysql_db_sel.str()).execute();
 						if (rsets.count() == 1) {
-						//if (rsets.hasData()) {//find user
+							//if (rsets.hasData()) {//find user
 							mysqlx::Row r = rsets.fetchOne();
 
 							//determine type
@@ -273,10 +273,10 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 									<< requestJson["id"].GetString() << "\',\'"
 									<< requestJson["password"].GetString() << "\',\'"
 									<< requestJson["contact"].GetString() << "\',"
-									<< "0,\'expired\',\'" 
-									<< Svandex::tools::GetCurrentTimeFT().c_str()<< "\',\'"
+									<< "0,\'expired\',\'"
+									<< Svandex::tools::GetCurrentTimeFT().c_str() << "\',\'"
 									<< winrt::to_hstring(requestJson["name"].GetString()).c_str()
-									<<"\')";
+									<< "\')";
 								mysql_ss.sql(mysql_db_sel.str()).execute();
 								httpSendBack(pHttpContext, "{\"registration\":0}");
 							}
@@ -324,24 +324,24 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 			default:
 				break;
 			}// switch 
-			}
-
-			//NO ACTION
-			return RQ_NOTIFICATION_CONTINUE;
 		}
-	}
-	catch (std::exception &e) {
-		httpSendBack(pHttpContext, Svandex::json::ErrMess(e.what(), SVANDEX_STL));
+
+		//NO ACTION
 		return RQ_NOTIFICATION_CONTINUE;
 	}
+}
+catch (std::exception &e) {
+	httpSendBack(pHttpContext, Svandex::json::ErrMess(e.what(), SVANDEX_STL));
+	return RQ_NOTIFICATION_CONTINUE;
+}
 
-	REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
-		return RQ_NOTIFICATION_CONTINUE;
-	}
+REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+	return RQ_NOTIFICATION_CONTINUE;
+}
 
-	REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
-		UNREFERENCED_PARAMETER(pProvider);
-		extern IHttpServer *g_HttpServer;
+REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+	UNREFERENCED_PARAMETER(pProvider);
+	extern IHttpServer *g_HttpServer;
 	/*
 	Login Determination
 
@@ -389,7 +389,7 @@ HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebS
 std::string RigNet::main(std::vector<char>& _websocket_in) try {
 	_websocket_in.shrink_to_fit();
 	if (_websocket_in.size() == 0) {
-		return Svandex::json::ErrMess("request body is empty","HTTP");
+		return Svandex::json::ErrMess("request body is empty", "HTTP");
 	}
 	static std::map<std::string, std::function<std::string(const rapidjson::Document &&msg)>> rig_dispatchlist_map;
 
@@ -444,7 +444,7 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 	mysql_ss.sql(mysql_db_sel.str()).execute();
 
 	auto mysql_stm = winrt::to_hstring(json_msg["sql"]["statement"].GetString()).c_str();
-	
+
 	//TODO: unicode char conversion
 
 	/*see if semicolon is at the end*/
@@ -463,7 +463,7 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 		{
 			writer.Key(std::to_string(l_index).c_str());
 			writer.StartArray();
-			for (unsigned tmp = 0; tmp < r.colCount(); tmp++)
+			for (size_t tmp = 0; tmp < r.colCount(); tmp++)
 			{
 				switch (r[tmp].getType()) {
 				case mysqlx::Value::Type::UINT64: writer.Uint64((uint64_t)r[tmp]); break;
