@@ -1,6 +1,6 @@
 # 试验室网络化
 
-本仓库用于试验室网络化的开发，主要分为数据中心开发和试验室中心开发。
+本仓库用于试验室网络化的开发，试验室网络主要包括数据中心和试验中心。
 
 ## 数据中心
 
@@ -32,3 +32,8 @@
 ### 数据库
 数据中心要存储大量数据首选采用大型数据库比如mysql，而试验中心仅仅是存储当日或短时间数据，且有大量数据可能不会被使用，采用sqlite满足需求且不会让Windows客户机运行缓慢，方便工程师日常使用。且工程师日常使用的Excel等软件都有很好的插件可以方便利用sqlite中的数据。
 
+### 依赖库
+
++ [tencent/rapidjson](https://github.com/tencent/rapidjson)
++ [mysql/mysql-connector-cpp](https://github.com/mysql/mysql-connector-cpp)
++ [chronolaw/ngx_cpp_dev](https://github.com/chronolaw/ngx_cpp_dev)
