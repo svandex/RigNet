@@ -1,6 +1,6 @@
 #include "precomp.h"
 // Create the module class.
-class CRigNet : public CHttpModule
+class CTVNet : public CHttpModule
 {
 public:
 	REQUEST_NOTIFICATION_STATUS OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider);
@@ -14,20 +14,20 @@ public:
 	std::promise<BOOL> m_websocket_cont;
 };
 
-HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
+HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
 
-namespace RigNet {
+namespace TV {
 /*
 This class is used to read settings from setting.json file
 */
 	class Setting
 	{
 	public:
-		static RigNet::Setting *instance()
+		static TV::Setting *instance()
 		{
 			if (!m_instance)
 			{
-				m_instance = new RigNet::Setting();
+				m_instance = new TV::Setting();
 			}
 			return m_instance;
 		}
@@ -39,16 +39,16 @@ This class is used to read settings from setting.json file
 		public:
 			~deletePTR()
 			{
-				if (RigNet::Setting::m_instance)
+				if (TV::Setting::m_instance)
 				{
-					delete RigNet::Setting::m_instance;
+					delete TV::Setting::m_instance;
 				}
 			}
 		};
 
 	private:
 		Setting() {};
-		Setting(const RigNet::Setting &);
+		Setting(const TV::Setting &);
 
 	public:
 		std::string filepath = "setting.json";
@@ -60,7 +60,7 @@ This class is used to read settings from setting.json file
 		std::string addr_mysql;
 
 	private:
-		static RigNet::Setting *m_instance;
+		static TV::Setting *m_instance;
 		static deletePTR del;
 	};
 
@@ -69,4 +69,5 @@ This class is used to read settings from setting.json file
 	*/
 		std::string main(std::vector<char> &msg);
 		std::string mysql(const rapidjson::Document &&msg);
+		std::string sqlite(const rapidjson::Document &&msg);
 }

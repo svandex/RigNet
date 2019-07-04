@@ -13,10 +13,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
 set(MYSQL_SOURCE_DIR "$ENV{USERPROFILE}\\Documents\\Repositories\\mysql-connector-cpp")
 set(MYSQL_INSTALL_DIR "$ENV{USERPROFILE}\\Documents\\Softwares\\mysql-connector-cpp-14-13")
 set(VCPKG_INSTALL_DIR "${VCPKG_ROOT}/installed/x64-windows/")
+set(SQLITE_INSTALL_DIR "$ENV{USERPROFILE}\\Documents\\Repositories\\sqlite")
 
-find_package(glog CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
-find_package(websocketpp CONFIG REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
@@ -25,25 +24,26 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include/RigNetService
     $ENV{NIEXTCCOMPILERSUPP}/include
     ${RAPIDJSON_INCLUDE_DIRS}
-    ${WEBSOCKETPP_INCLUDE_DIRS}
     ${VCPKG_INSTALL_DIR}/include
 	${MYSQL_SOURCE_DIR}/include
+	${SQLITE_INSTALL_DIR}/sqlite-amalgamation
     )
 
 link_directories(
 	${MYSQL_INSTALL_DIR}/RelWithDebInfo
     $ENV{NIEXTCCOMPILERSUPP}/lib64/msvc
     ${VCPKG_INSTALL_DIR}/lib
+	${SQLITE_INSTALL_DIR}
     )
 
 set(CMAKE_MFC_FLAG 2)#2 means shared mfc library
 
 #Windows Service
-add_executable(RigNetService src/RigNetService/CppWindowsService.cpp src/RigNetService/RigNetService.cpp src/RigNetService/ServiceBase.cpp src/RigNetService/ServiceInstaller.cpp src/Svandex.cpp)
-target_compile_definitions(RigNetService PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_options(RigNetService PRIVATE "/permissive")
-set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
-target_link_libraries(RigNetService mysqlcppconn8 pathcch rpcrt4)
+#add_executable(RigNetService src/RigNetService/CppWindowsService.cpp src/RigNetService/RigNetService.cpp src/RigNetService/ServiceBase.cpp src/RigNetService/ServiceInstaller.cpp src/Svandex.cpp)
+#target_compile_definitions(RigNetService PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
+#target_compile_options(RigNetService PRIVATE "/permissive")
+#set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
+#target_link_libraries(RigNetService mysqlcppconn8 pathcch rpcrt4)
 
 #IIS MODULE 
 add_library(RigNetModule SHARED src/IISModule/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp)

@@ -37,9 +37,9 @@ Module header file
 */
 #include "RigNetModule.h"
 
-#define LAB_LOGIN 0
-#define LAB_REGISTER 1
-#define LAB_DATA 2
+#define TV_LOGIN 0
+#define TV_REGISTER 1
+#define TV_DATA 2
 
 #include "winrt/Windows.Foundation.h"
 

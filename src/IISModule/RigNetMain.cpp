@@ -19,7 +19,7 @@ features includeing:
 #include "precomp.h"
 
 // Create the module's class factory.
-class CRigNetFactory : public IHttpModuleFactory
+class CTVNetFactory : public IHttpModuleFactory
 {
 public:
     HRESULT
@@ -30,7 +30,7 @@ public:
         UNREFERENCED_PARAMETER(pAllocator);
 
         // Create a new instance.
-		CRigNet *pModule = new CRigNet;
+		CTVNet *pModule = new CTVNet;
 
         // Test for an error.
         if (!pModule)
@@ -70,7 +70,7 @@ __stdcall RegisterModule(
 
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
-		new CRigNetFactory,
+		new CTVNetFactory,
 		RQ_AUTHENTICATE_REQUEST,// | RQ_SEND_RESPONSE,
         0);
 }

@@ -1,6 +1,7 @@
 ﻿#include "precomp.h"
+#include "sqlite3.h"
 
-inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result) {
+inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)try {
 	HRESULT hr = S_OK;
 	//PCSTR pszBuf = "hello";
 	PCSTR pszBuf = result.c_str();
@@ -28,8 +29,17 @@ inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result) {
 	pHttpContext->GetResponse()->Flush(FALSE, TRUE, &cbSent);
 	return hr;
 }
+catch (std::exception &e) {
+	// Retrieve a pointer to the response.
+	IHttpResponse *pHttpResponse = pHttpContext->GetResponse();
+	HRESULT hr = E_UNEXPECTED;
+	pHttpResponse->SetStatus(500, e.what(), 0, hr);
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider)
+	// End additional processing.
+	return RQ_NOTIFICATION_FINISH_REQUEST;
+}
+
+REQUEST_NOTIFICATION_STATUS CTVNet::OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider)
 try {
 	UNREFERENCED_PARAMETER(pProvider);
 
@@ -76,7 +86,7 @@ catch (std::exception &e) {
 	return RQ_NOTIFICATION_FINISH_REQUEST;
 }
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo) {
+REQUEST_NOTIFICATION_STATUS CTVNet::OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo) {
 	/*
 	Determine whether module has enabled websocket module,
 	other module may also call OnAsyncCompletion
@@ -97,7 +107,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAsyncCompletion(IN IHttpContext* pHttpCon
 	}
 }
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHttpContext, IN IAuthenticationProvider* pProvider) try{
+REQUEST_NOTIFICATION_STATUS CTVNet::OnAuthenticateRequest(IN IHttpContext *pHttpContext, IN IAuthenticationProvider* pProvider) try{
 	UNREFERENCED_PARAMETER(pProvider);
 	extern IHttpServer *g_HttpServer;
 	HRESULT hr;
@@ -106,7 +116,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 	IHttpResponse* pHttpResponse = pHttpContext->GetResponse();
 	auto hhc = pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade);
 	if (hhc != NULL && std::strcmp(hhc, "websocket") == 0) {
-		Svandex::WebSocket wsinstance(g_HttpServer, pHttpContext, RigNetMain);
+		Svandex::WebSocket wsinstance(g_HttpServer, pHttpContext, TVNetMain);
 		wsinstance.StateMachine();
 		//m_websocket_cont.set_value(TRUE);
 
@@ -128,10 +138,10 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 		*/
 		// get url
 
-		std::map<std::string, int> urlmap;
-		urlmap["/login"] = LAB_LOGIN;
-		urlmap["/register"] = LAB_REGISTER;
-		urlmap["/data"] = LAB_DATA;
+		std::map<std::string, int> urls;
+		urls["/login"] = TV_LOGIN;
+		urls["/register"] = TV_REGISTER;
+		urls["/data"] = TV_DATA;
 
 		//Read Request entity to bufHttpRequest
 		DWORD cbReceived = 0;
@@ -140,13 +150,13 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 		hr = pHttpRequest->ReadEntityBody(bufHttpRequest.data(), bufHttpRequest.capacity(), FALSE, &cbReceived);
 		//TODO: Read only once, but it is not enough
 
-		PCSTR v_forwardURL;
-		DWORD v_pcchValueLength;
-		hr = pHttpContext->GetServerVariable("HTTP_URL", &v_forwardURL, &v_pcchValueLength);
+		PCSTR vForwardURL;
+		DWORD vPcchValueLength;
+		hr = pHttpContext->GetServerVariable("HTTP_URL", &vForwardURL, &vPcchValueLength);
 
-		if (urlmap.find(v_forwardURL) != urlmap.end()) {
-			switch (urlmap[v_forwardURL]) {
-			case LAB_LOGIN: {//login
+		if (urls.find(vForwardURL) != urls.end()) {
+			switch (urls[vForwardURL]) {
+			case TV_LOGIN: {//login
 				mysqlx::Session mysql_ss("mysqlx://saictv:saictv@localhost:33060/labwireless?ssl-mode=disabled");
 				rapidjson::Document requestJson;
 				if (requestJson.Parse(bufHttpRequest.data()).HasParseError()) {
@@ -233,7 +243,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 				mysql_ss.close();
 				break;
 			}
-			case LAB_REGISTER: {//register new users
+			case TV_REGISTER: {//register new users
 				mysqlx::Session mysql_ss("mysqlx://saictv:saictv@localhost:33060/labwireless?ssl-mode=disabled");
 				rapidjson::Document requestJson;
 				if (requestJson.Parse(bufHttpRequest.data()).HasParseError()) {
@@ -289,7 +299,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 				mysql_ss.close();
 				break;
 			}
-			case LAB_DATA: {//data
+			case TV_DATA: {//data
 				mysqlx::Session mysql_ss("mysqlx://saictv:saictv@localhost:33060/labwireless?ssl-mode=disabled");
 				rapidjson::Document requestJson;
 				if (!requestJson.Parse(bufHttpRequest.data()).HasParseError() && requestJson.HasMember("sessionId")) {
@@ -308,7 +318,7 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthenticateRequest(IN IHttpContext *pHtt
 							mysql_ss.close();
 							break;
 						}
-						auto result = RigNet::main(bufHttpRequest);
+						auto result = TV::main(bufHttpRequest);
 						httpSendBack(pHttpContext, result);
 					}
 					else {//no session exist
@@ -335,11 +345,11 @@ catch (std::exception &e) {
 	return RQ_NOTIFICATION_CONTINUE;
 }
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+REQUEST_NOTIFICATION_STATUS CTVNet::OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
 	return RQ_NOTIFICATION_CONTINUE;
 }
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+REQUEST_NOTIFICATION_STATUS CTVNet::OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
 	UNREFERENCED_PARAMETER(pProvider);
 	extern IHttpServer *g_HttpServer;
 	/*
@@ -371,22 +381,22 @@ REQUEST_NOTIFICATION_STATUS CRigNet::OnAuthorizeRequest(IN IHttpContext *pHttpCo
 
 }
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnPostAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
+REQUEST_NOTIFICATION_STATUS CTVNet::OnPostAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider) {
 	return RQ_NOTIFICATION_CONTINUE;
 }
 
-HRESULT RigNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
+HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
 	/*
 	WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), WebSocketReadLine.end());
 	*/
-	const char* result = RigNet::main(WebSocketReadLine).data();
+	const char* result = TV::main(WebSocketReadLine).data();
 	WebSocketWritLine.clear();
 	WebSocketWritLine.reserve(WebSocketWritLine.size() + std::strlen(result));
 	WebSocketWritLine.insert(WebSocketWritLine.end(), result, result + std::strlen(result));
 	return S_OK;
 }
 
-std::string RigNet::main(std::vector<char>& _websocket_in) try {
+std::string TV::main(std::vector<char>& _websocket_in) try {
 	_websocket_in.shrink_to_fit();
 	if (_websocket_in.size() == 0) {
 		return Svandex::json::ErrMess("request body is empty", "HTTP");
@@ -394,7 +404,7 @@ std::string RigNet::main(std::vector<char>& _websocket_in) try {
 	static std::map<std::string, std::function<std::string(const rapidjson::Document &&msg)>> rig_dispatchlist_map;
 
 	//dispatch initialization
-	rig_dispatchlist_map["mysql"] = RigNet::mysql;
+	rig_dispatchlist_map["mysql"] = TV::mysql;
 	/*
 	rig_dispatchlist_map["plc"] = rignet_plc;
 	rig_dispatchlist_map["nicard"] = rignet_nicard;
@@ -429,9 +439,9 @@ catch (std::exception &e)
 	return Svandex::json::ErrMess(e.what(), SVANDEX_STL);
 }
 
-std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
+std::string TV::mysql(const rapidjson::Document &&json_msg)try {
 	/*
-	RigNet::Setting *tvs = RigNet::Setting::instance();
+	TV::Setting *tvs = TV::Setting::instance();
 
 	auto mysql_login = std::string("mysqlx://") + tvs->jsonobj["mysql"]["user"].GetString() + std::string(":") + tvs->jsonobj["mysql"]["pwd"].GetString() + std::string("@") + tvs->jsonobj["mysql"]["ip"].GetString() + std::string(":") + std::to_string(tvs->jsonobj["mysql"]["port"].GetInt()) + std::string("/eslam?ssl-mode=disabled");
 	mysqlx::Session mysql_ss(mysql_login.c_str());
@@ -500,8 +510,10 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 			l_index++;
 		}
 		//websocket process id return to client
+		/*
 		writer.Key("wspid");
 		writer.String(json_msg["wspid"].GetString());
+		 */
 		writer.EndObject();
 		/*end object*/
 
@@ -509,7 +521,7 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 	}
 	else
 	{
-		return Svandex::json::ErrMess("mysql result sets empty", SVANDEX_STL);
+		return Svandex::json::ErrMess("mysql result sets empty", "TV::mysql");
 	}
 
 	//close mysql session
@@ -517,10 +529,22 @@ std::string RigNet::mysql(const rapidjson::Document &&json_msg)try {
 }
 catch (std::exception &e)
 {
-	return Svandex::json::ErrMess(e.what(), SVANDEX_STL);
+	return Svandex::json::ErrMess(e.what(), "TV::mysql");
 }
 
-REQUEST_NOTIFICATION_STATUS CRigNet::OnReadEntity(IN IHttpContext* pHttpContext, IN IReadEntityProvider* pProvider) {
+/*
+sqlite implementation
+ */
+std::string TV::sqlite(const rapidjson::Document &&msg) try
+{
+}
+catch (std::exception &e)
+{
+	return Svandex::json::ErrMess(e.what(), "TV::sqlite");
+}
+
+REQUEST_NOTIFICATION_STATUS CTVNet::OnReadEntity(IN IHttpContext *pHttpContext, IN IReadEntityProvider *pProvider)
+{
 
 	return RQ_NOTIFICATION_CONTINUE;
 }

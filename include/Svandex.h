@@ -2,7 +2,7 @@
 Common Tools Header file, Svandex.h
 
 Author: Svandex
-Mail: svandexcn@icloud.com
+Mail: svandex@outlook.com
 
 Common Tools Header file, only containing platform headers and STL headers.
 
