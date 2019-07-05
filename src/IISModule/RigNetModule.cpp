@@ -405,6 +405,7 @@ std::string TV::main(std::vector<char>& _websocket_in) try {
 
 	//dispatch initialization
 	rig_dispatchlist_map["mysql"] = TV::mysql;
+	rig_dispatchlist_map["sqlite"] = TV::sqlite;
 	/*
 	rig_dispatchlist_map["plc"] = rignet_plc;
 	rig_dispatchlist_map["nicard"] = rignet_nicard;
@@ -417,9 +418,9 @@ std::string TV::main(std::vector<char>& _websocket_in) try {
 		return Svandex::json::ErrMess("not a json object");
 	}
 
-	if (json_msg.HasMember("comtype") && json_msg.HasMember("wspid"))
+	if (json_msg.HasMember("comtype"))
 	{
-		if (json_msg["comtype"].IsString() && json_msg["wspid"].IsString())
+		if (json_msg["comtype"].IsString())
 		{
 			auto f = rig_dispatchlist_map[json_msg["comtype"].GetString()];
 			return f(std::move(json_msg));
@@ -464,23 +465,23 @@ std::string TV::mysql(const rapidjson::Document &&json_msg)try {
 	{
 		mysqlx::Row r;
 		rapidjson::StringBuffer sb;
-		rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+		rapidjson::Writer<rapidjson::StringBuffer> rj(sb);
 
 		/*start object*/
-		writer.StartObject();
+		rj.StartObject();
 		int l_index = 0;
 		while ((r = rsets.fetchOne()))
 		{
-			writer.Key(std::to_string(l_index).c_str());
-			writer.StartArray();
+			rj.Key(std::to_string(l_index).c_str());
+			rj.StartArray();
 			for (size_t tmp = 0; tmp < r.colCount(); tmp++)
 			{
 				switch (r[tmp].getType()) {
-				case mysqlx::Value::Type::UINT64: writer.Uint64((uint64_t)r[tmp]); break;
-				case mysqlx::Value::Type::INT64: writer.Int64((int64_t)r[tmp]); break;
-				case mysqlx::Value::Type::STRING: writer.String(std::string(r[tmp]).c_str()); break;
-				case mysqlx::Value::Type::DOUBLE: writer.Double((double)r[tmp]); break;
-				case mysqlx::Value::Type::BOOL: writer.Bool((bool)r[tmp]); break;
+				case mysqlx::Value::Type::UINT64: rj.Uint64((uint64_t)r[tmp]); break;
+				case mysqlx::Value::Type::INT64: rj.Int64((int64_t)r[tmp]); break;
+				case mysqlx::Value::Type::STRING: rj.String(std::string(r[tmp]).c_str()); break;
+				case mysqlx::Value::Type::DOUBLE: rj.Double((double)r[tmp]); break;
+				case mysqlx::Value::Type::BOOL: rj.Bool((bool)r[tmp]); break;
 				case mysqlx::Value::Type::RAW: {
 					/*
 					r[tmp].print(std::cout);
@@ -493,35 +494,35 @@ std::string TV::mysql(const rapidjson::Document &&json_msg)try {
 					std::cout << buf << std::endl;
 					asctime_s(buf, 256, &v_tm);
 					std::cout << buf << std::endl;
-					writer.String(buf);
+					rj.String(buf);
 					break;
 */
-					writer.String("rawbytes");
+					rj.String("rawbytes");
 					break;
 				}
 				default:
-					writer.String("null");
+					rj.String("null");
 					break;
 
 				}
 			}
-			writer.EndArray();
+			rj.EndArray();
 
 			l_index++;
 		}
 		//websocket process id return to client
 		/*
-		writer.Key("wspid");
-		writer.String(json_msg["wspid"].GetString());
+		rj.Key("wspid");
+		rj.String(json_msg["wspid"].GetString());
 		 */
-		writer.EndObject();
+		rj.EndObject();
 		/*end object*/
 
 		return std::string(sb.GetString());
 	}
 	else
 	{
-		return Svandex::json::ErrMess("mysql result sets empty", "TV::mysql");
+		return Svandex::json::ErrMess("mysql result sets empty");
 	}
 
 	//close mysql session
@@ -529,18 +530,84 @@ std::string TV::mysql(const rapidjson::Document &&json_msg)try {
 }
 catch (std::exception &e)
 {
-	return Svandex::json::ErrMess(e.what(), "TV::mysql");
+	return Svandex::json::ErrMess(e.what());
 }
 
 /*
 sqlite implementation
  */
+
+ /*
+ callback struct
+ */
+struct cPara {
+	void * data;
+	int ki;
+} cp;
+
+static int sqlite_callback(void *data, int argc, char **argv, char **azColName) {
+	auto pData = (cPara*)data;
+	auto rj = (rapidjson::Writer<rapidjson::StringBuffer>*)(pData->data);
+	rj->Key(std::to_string(pData->ki).c_str());
+	pData->ki += 1;
+	rj->StartArray();
+	for (size_t i = 0; i < argc; i++)
+	{
+		rj->String(argv[i]);
+	}
+	rj->EndArray();
+	return 0;
+}
+
 std::string TV::sqlite(const rapidjson::Document &&msg) try
 {
+	rapidjson::StringBuffer sb;
+	rapidjson::Writer<rapidjson::StringBuffer> rj(sb);
+
+	/*start object*/
+	rj.StartObject();
+	/*sqlite */
+	sqlite3* db;
+	const char* sql;
+	int rc, keyIndex;
+	char *errMsg = 0;
+
+	keyIndex = 0;
+
+	auto dbPath = std::string("C:\\Users\\saictv\\Desktop\\Sites\\db\\") + msg["sql"]["database"].GetString() + ".db";
+
+	rc = sqlite3_open(dbPath.c_str(), &db);
+	if (rc)
+	{
+		return Svandex::json::ErrMess("Failed To Open Sqlite Database");
+	}
+
+	cp.data = &rj;
+	cp.ki = keyIndex;
+
+
+	sql = msg["sql"]["statement"].GetString();
+	rc = sqlite3_exec(db, sql, sqlite_callback, &cp, &errMsg);
+
+	/*end object */
+	rj.EndObject();
+	std::string rs;
+
+	if (rc != SQLITE_OK)
+	{
+		rs = errMsg;
+		sqlite3_free(errMsg);
+	}
+	else
+	{
+		rs = sb.GetString();
+	}
+	sqlite3_close(db);
+	return rs;
 }
 catch (std::exception &e)
 {
-	return Svandex::json::ErrMess(e.what(), "TV::sqlite");
+	return Svandex::json::ErrMess(e.what());
 }
 
 REQUEST_NOTIFICATION_STATUS CTVNet::OnReadEntity(IN IHttpContext *pHttpContext, IN IReadEntityProvider *pProvider)
