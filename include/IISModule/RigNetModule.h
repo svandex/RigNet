@@ -4,12 +4,9 @@ class CTVNet : public CHttpModule
 {
 public:
 	REQUEST_NOTIFICATION_STATUS OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider);
-	REQUEST_NOTIFICATION_STATUS OnAuthenticateRequest(IN IHttpContext *pHttpContext, IN IAuthenticationProvider* pProvider);
-	REQUEST_NOTIFICATION_STATUS OnPostAuthenticateRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
-	REQUEST_NOTIFICATION_STATUS OnAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
-	REQUEST_NOTIFICATION_STATUS OnPostAuthorizeRequest(IN IHttpContext *pHttpContext, IN IHttpEventProvider* pProvider);
 	REQUEST_NOTIFICATION_STATUS OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo);
 	REQUEST_NOTIFICATION_STATUS OnReadEntity(IN IHttpContext* pHttpContext, IN IReadEntityProvider* pProvider);
+	REQUEST_NOTIFICATION_STATUS OnExecuteRequestHandler(IN IHttpContext* pHttpContext, IN IHttpEventProvider* pProvider);
 
 	std::promise<BOOL> m_websocket_cont;
 };
@@ -68,6 +65,12 @@ This class is used to read settings from setting.json file
 	Via WebSocket
 	*/
 		std::string main(std::vector<char> &msg);
+#ifdef USE_MYSQL
 		std::string mysql(const rapidjson::Document &&msg);
+#endif
 		std::string sqlite(const rapidjson::Document &&msg);
+
+		namespace SQLITE {
+			std::string general(const char* db, const char* stm);
+		}
 }

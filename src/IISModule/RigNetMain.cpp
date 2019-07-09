@@ -3,7 +3,7 @@ Rig Net Module In IIS
 
 Author: Juncheng Qiu
 Mail: qiujuncheng@saicmotor.com
-Git: https://github.com/svandex/rignet
+Git: https://github.com/svandex/tvnet
 license: Apache
 
 features includeing:
@@ -71,6 +71,6 @@ __stdcall RegisterModule(
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
 		new CTVNetFactory,
-		RQ_AUTHENTICATE_REQUEST,// | RQ_SEND_RESPONSE,
+		RQ_EXECUTE_REQUEST_HANDLER,// | RQ_SEND_RESPONSE,
         0);
 }

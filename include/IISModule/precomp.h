@@ -3,6 +3,8 @@
 
 //#define WIN32_LEAN_AND_MEAN
 
+constexpr const char* DB_DIR = "C:\\Users\\saictv\\Desktop\\Sites\\db\\";
+
 //Project header files
 #include "Svandex.h"
 
@@ -30,7 +32,9 @@ mysql xdev api header files
 
 https://github.com/mysql/mysql-connector-cpp
 */
+#ifdef USE_MYSQL
 #include "mysqlx/xdevapi.h"
+#endif
 
 /*
 Module header file
