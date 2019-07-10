@@ -119,7 +119,7 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		/*
 		WebSocket protocol
 		*/
-		Svandex::WebSocket wsinstance(g_HttpServer, pHttpContext, TVNetMain);
+		Svandex::WebSocket wsinstance(g_HttpServer, pHttpContext, TV::TVNetMain);
 		wsinstance.StateMachine();
 		//m_websocket_cont.set_value(TRUE);
 
@@ -141,6 +141,7 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		urls["/login"] = TV_LOGIN;
 		urls["/register"] = TV_REGISTER;
 		urls["/data"] = TV_DATA;
+		urls["/exist"] = TV_EXIST;
 
 
 		PCSTR vForwardURL;
@@ -160,7 +161,15 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 			*/
 			rapidjson::Document requestJson;
 			if (requestJson.Parse(bufHttpRequest.data()).HasParseError()) {
-				httpSendBack(pHttpContext, Svandex::json::ErrMess("-1"));
+				httpSendBack(pHttpContext, Svandex::json::ErrMess("Request JSON parse failed"));
+			}
+
+			if (sqlite3_threadsafe() != 0) {
+				sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+				/*
+				httpSendBack(pHttpContext, Svandex::json::ErrMess("SQLITE THREAD UNSAFE", "sqlite"));
+				return RQ_NOTIFICATION_CONTINUE;
+				*/
 			}
 
 			/*
@@ -175,7 +184,7 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 					db_stm << L"select `角色`,`密码`,`会话标识`,`最近更新` from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
 					rapidjson::Document rcDOC;
 					auto result = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str()).c_str();
-					if (rcDOC.Parse(result).HasParseError()) {
+					if (rcDOC.Parse(result).HasParseError() || !rcDOC.HasMember("0")) {
 						httpSendBack(pHttpContext, Svandex::json::ErrMess("sqlite execution failed", "login"));
 						break;
 					}
@@ -187,7 +196,7 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 						if (s_ssId.str() == "expired") {//add uuid as session id
 							auto uuid = Svandex::tools::GetUUID();
 							if (uuid == "") {
-								httpSendBack(pHttpContext, "{\"sessionId\":-4}");
+								httpSendBack(pHttpContext, Svandex::json::ErrMess("Server cannot create uuid.", "login"));
 							}
 							else {
 								db_stm.clear();
@@ -296,6 +305,27 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 
 				}//TV_REGISTER
 			}
+			case TV_EXIST: {
+				rapidjson::Document requestJson;
+				if (requestJson.Parse(bufHttpRequest.data()).HasParseError()) {
+					httpSendBack(pHttpContext, Svandex::json::ErrMess("-1"));
+				}
+				else {
+					if (requestJson.HasMember("userId")) {
+						std::wstringstream db_stm;
+						db_stm << L"select * from `0用户信息` where `工号`=\"" << requestJson["userId"].GetString() << "\"";
+						auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
+
+						rapidjson::Document rcDoc;
+						if (rcDoc.Parse(rcStr.c_str()).HasMember("0")) {
+							httpSendBack(pHttpContext, Svandex::json::ErrMess("1", "result"));
+						}
+						else {
+							httpSendBack(pHttpContext, Svandex::json::ErrMess("0", "result"));
+						}
+					}
+				}
+			}//TV_EXIST
 			}
 		}
 		return RQ_NOTIFICATION_CONTINUE;
@@ -307,7 +337,7 @@ TVNET main entry
 
 Main control for websocket
 */
-HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
+HRESULT TV::TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine) {
 	/*
 WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), WebSocketReadLine.end());
 */
@@ -388,23 +418,23 @@ std::string TV::mysql(const rapidjson::Document &&json_msg)try {
 	{
 		mysqlx::Row r;
 		rapidjson::StringBuffer sb;
-		rapidjson::Writer<rapidjson::StringBuffer> rj(sb);
+		rapidjson::Writer<rapidjson::StringBuffer> responseWriter(sb);
 
 		/*start object*/
-		rj.StartObject();
+		responseWriter.StartObject();
 		int l_index = 0;
 		while ((r = rsets.fetchOne()))
 		{
-			rj.Key(std::to_string(l_index).c_str());
-			rj.StartArray();
+			responseWriter.Key(std::to_string(l_index).c_str());
+			responseWriter.StartArray();
 			for (size_t tmp = 0; tmp < r.colCount(); tmp++)
 			{
 				switch (r[tmp].getType()) {
-				case mysqlx::Value::Type::UINT64: rj.Uint64((uint64_t)r[tmp]); break;
-				case mysqlx::Value::Type::INT64: rj.Int64((int64_t)r[tmp]); break;
-				case mysqlx::Value::Type::STRING: rj.String(std::string(r[tmp]).c_str()); break;
-				case mysqlx::Value::Type::DOUBLE: rj.Double((double)r[tmp]); break;
-				case mysqlx::Value::Type::BOOL: rj.Bool((bool)r[tmp]); break;
+				case mysqlx::Value::Type::UINT64: responseWriter.Uint64((uint64_t)r[tmp]); break;
+				case mysqlx::Value::Type::INT64: responseWriter.Int64((int64_t)r[tmp]); break;
+				case mysqlx::Value::Type::STRING: responseWriter.String(std::string(r[tmp]).c_str()); break;
+				case mysqlx::Value::Type::DOUBLE: responseWriter.Double((double)r[tmp]); break;
+				case mysqlx::Value::Type::BOOL: responseWriter.Bool((bool)r[tmp]); break;
 				case mysqlx::Value::Type::RAW: {
 					/*
 					r[tmp].print(std::cout);
@@ -417,28 +447,28 @@ std::string TV::mysql(const rapidjson::Document &&json_msg)try {
 					std::cout << buf << std::endl;
 					asctime_s(buf, 256, &v_tm);
 					std::cout << buf << std::endl;
-					rj.String(buf);
+					responseWriter.String(buf);
 					break;
 */
-					rj.String("rawbytes");
+					responseWriter.String("rawbytes");
 					break;
 				}
 				default:
-					rj.String("null");
+					responseWriter.String("null");
 					break;
 
 				}
 			}
-			rj.EndArray();
+			responseWriter.EndArray();
 
 			l_index++;
 		}
 		//websocket process id return to client
 		/*
-		rj.Key("wspid");
-		rj.String(json_msg["wspid"].GetString());
+		responseWriter.Key("wspid");
+		responseWriter.String(json_msg["wspid"].GetString());
 		 */
-		rj.EndObject();
+		responseWriter.EndObject();
 		/*end object*/
 
 		return std::string(sb.GetString());
@@ -461,20 +491,24 @@ catch (std::exception &e)
 sqlite implementation
  */
 
- /*
- callback struct
+/*
+class used to support sending parameters 
  */
-struct cPara {
+class cPara {
+public:
 	void * data;
 	int ki;
-} cp;
+};
 
+/*
+sqlite callback function
+ */
 static int sqlite_callback(void *data, int argc, char **argv, char **azColName) {
 	auto pData = (cPara*)data;
-	auto rj = (rapidjson::Writer<rapidjson::StringBuffer>*)(pData->data);
-	rj->Key(std::to_string(pData->ki).c_str());
+	auto responseWriter = (rapidjson::Writer<rapidjson::StringBuffer>*)(pData->data);
+	responseWriter->Key(std::to_string(pData->ki).c_str());
 	pData->ki += 1;
-	rj->StartArray();
+	responseWriter->StartArray();
 
 	if (argc == 0) {
 		return 0;
@@ -482,9 +516,9 @@ static int sqlite_callback(void *data, int argc, char **argv, char **azColName) 
 
 	for (size_t i = 0; i < argc; i++)
 	{
-		rj->String(argv[i]);
+		responseWriter->String(argv[i]);
 	}
-	rj->EndArray();
+	responseWriter->EndArray();
 	return 0;
 }
 
@@ -499,32 +533,34 @@ catch (std::exception &e)
 
 std::string TV::SQLITE::general(const char* dbname, const char* stm) {
 	rapidjson::StringBuffer sb;
-	rapidjson::Writer<rapidjson::StringBuffer> rj(sb);
+	rapidjson::Writer<rapidjson::StringBuffer> responseWriter(sb);
 
 	/*start object*/
-	rj.StartObject();
+	responseWriter.StartObject();
 	/*sqlite */
 	sqlite3* db;
 	int rc, keyIndex;
 	char *errMsg = 0;
+	cPara cp;
 
 	keyIndex = 0;
 
 	auto dbPath = std::string(DB_DIR) + dbname + ".db";
 
 	rc = sqlite3_open(dbPath.c_str(), &db);
+	//rc = sqlite3_open_v2(dbPath.c_str(), &db, SQLITE_OPEN_NOMUTEX, NULL);
 	if (rc)
 	{
 		return Svandex::json::ErrMess("Failed To Open Sqlite Database");
 	}
 
-	cp.data = &rj;
+	cp.data = &responseWriter;
 	cp.ki = keyIndex;
 
 	rc = sqlite3_exec(db, stm, sqlite_callback, &cp, &errMsg);
 
 	/*end object */
-	rj.EndObject();
+	responseWriter.EndObject();
 	std::string rs;
 
 	if (rc != SQLITE_OK)

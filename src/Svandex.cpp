@@ -200,7 +200,7 @@ void WINAPI Svandex::functor::ReadAsyncCompletion(HRESULT hr, PVOID completionCo
 
 		pws->m_writ_once.clear();
 		hrac = pws->m_opreation_functor(pws->m_read_once, pws->m_writ_once);
-		DWORD writ_bytes = pws->m_writ_once.size();
+		DWORD writ_bytes = (DWORD)pws->m_writ_once.size();
 		hrac = pWebSocketContext->WriteFragment(pws->m_writ_once.data(), &writ_bytes, TRUE, TRUE, TRUE, Svandex::functor::WritAsyncCompletion, pws);
 	}
 }

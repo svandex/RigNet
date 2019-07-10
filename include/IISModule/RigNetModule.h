@@ -11,8 +11,6 @@ public:
 	std::promise<BOOL> m_websocket_cont;
 };
 
-HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
-
 namespace TV {
 /*
 This class is used to read settings from setting.json file
@@ -64,13 +62,25 @@ This class is used to read settings from setting.json file
 	/*
 	Via WebSocket
 	*/
-		std::string main(std::vector<char> &msg);
-#ifdef USE_MYSQL
-		std::string mysql(const rapidjson::Document &&msg);
-#endif
-		std::string sqlite(const rapidjson::Document &&msg);
 
-		namespace SQLITE {
-			std::string general(const char* db, const char* stm);
-		}
+	/*
+	TVNetMain, as functor for initialization of websocket
+	*/
+	HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
+
+	/*
+	Following Three functions used for responding comtype in each request json struct
+	*/
+	std::string main(std::vector<char> &msg);
+#ifdef USE_MYSQL
+	std::string mysql(const rapidjson::Document &&msg);
+#endif
+	std::string sqlite(const rapidjson::Document &&msg);
+
+	/*
+	Inner implementaton of sqlite query
+	*/
+	namespace SQLITE {
+		std::string general(const char* db, const char* stm);
+	}
 }

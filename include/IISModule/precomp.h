@@ -3,7 +3,7 @@
 
 //#define WIN32_LEAN_AND_MEAN
 
-constexpr const char* DB_DIR = "C:\\Users\\saictv\\Desktop\\Sites\\db\\";
+constexpr const char* DB_DIR = "C:\\db\\";
 
 //Project header files
 #include "Svandex.h"
@@ -44,6 +44,7 @@ Module header file
 #define TV_LOGIN 0
 #define TV_REGISTER 1
 #define TV_DATA 2
+#define TV_EXIST 3
 
 #include "winrt/Windows.Foundation.h"
 
