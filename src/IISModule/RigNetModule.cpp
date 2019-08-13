@@ -1,5 +1,4 @@
 ﻿#include "precomp.h"
-#include "sqlite3.h"
 
 inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)try {
 	HRESULT hr = S_OK;
@@ -18,15 +17,16 @@ inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)tr
 	// Set the chunk size to the buffer size.
 	dataChunk.FromMemory.BufferLength =
 		(USHORT)strlen(pszBuf);
+	BOOL completed;
 	// Insert the data chunk into the response.
 	hr = pHttpContext->GetResponse()->WriteEntityChunks(
-		&dataChunk, 1, FALSE, TRUE, &cbSent);
+		&dataChunk, 1, FALSE, TRUE, &cbSent, &completed);
 	if (FAILED(hr))
 	{
 		// Set the HTTP status.
 		pHttpContext->GetResponse()->SetStatus(500, "Server Error", 0, hr);
 	}
-	pHttpContext->GetResponse()->Flush(FALSE, TRUE, &cbSent);
+	pHttpContext->GetResponse()->Flush(FALSE, TRUE, &cbSent, &completed);
 	return hr;
 }
 catch (std::exception &e) {
@@ -44,35 +44,6 @@ try {
 	UNREFERENCED_PARAMETER(pProvider);
 
 	extern IHttpServer *g_HttpServer;
-
-	// Retrieve a pointer to the request
-	IHttpRequest *pHttpRequest = pHttpContext->GetRequest();
-	// Retrieve a pointer to the response.
-	IHttpResponse *pHttpResponse = pHttpContext->GetResponse();
-	// Create an HRESULT to receive return values from methods.
-	HRESULT hr = S_OK;
-
-	if (pHttpRequest != NULL && pHttpResponse != NULL)
-	{
-		//Accept Key
-		if (auto value = pHttpResponse->GetHeader("Sec-WebSocket-Accept")) {
-		}
-
-		// Test for an error.
-		if (FAILED(hr))
-		{
-			// Set the HTTP status.
-			pHttpResponse->SetStatus(500, "Server Error", 0, hr);
-
-			// End additional processing.
-			return RQ_NOTIFICATION_CONTINUE;
-		}
-	}
-	else
-	{
-		// End additional processing.
-		return RQ_NOTIFICATION_FINISH_REQUEST;
-	}
 
 	return RQ_NOTIFICATION_CONTINUE;
 }
@@ -114,7 +85,9 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 
 	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
 	IHttpResponse* pHttpResponse = pHttpContext->GetResponse();
-	auto hhc = pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade);
+
+	USHORT headerValue;
+	auto hhc = pHttpRequest->GetHeader(HTTP_HEADER_ID::HttpHeaderUpgrade, &headerValue);
 	if (hhc != NULL && std::strcmp(hhc, "websocket") == 0) {
 		/*
 		WebSocket protocol
@@ -151,9 +124,10 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		if (urls.find(vForwardURL) != urls.end()) {
 			//Read Request entity to bufHttpRequest
 			DWORD cbReceived = 0;
+			BOOL completed;
 			std::vector<char> bufHttpRequest;
 			bufHttpRequest.resize(SVANDEX_BUF_SIZE);
-			hr = pHttpRequest->ReadEntityBody(bufHttpRequest.data(), (DWORD)bufHttpRequest.capacity(), FALSE, &cbReceived);
+			hr = pHttpRequest->ReadEntityBody(bufHttpRequest.data(), (DWORD)bufHttpRequest.capacity(), FALSE, &cbReceived, &completed);
 			//TODO: Read only once, but it is not enough
 
 			/*
@@ -265,7 +239,15 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 					httpSendBack(pHttpContext, result);
 				}
 				else {
-					httpSendBack(pHttpContext, Svandex::json::ErrMess("Parse Error or SessionId key not found", "data"));
+					/*
+					if not sessionid, give username and password to get item
+					 */
+					if(requestJson.HasMember("readonly")){
+						auto result = TV::main(bufHttpRequest);
+						httpSendBack(pHttpContext, result);
+					}else{
+						httpSendBack(pHttpContext, Svandex::json::ErrMess("Parse Error or SessionId key not found", "data"));
+					}
 				}
 				break;
 			}//TV_DATA
@@ -539,11 +521,9 @@ std::string TV::SQLITE::general(const char* dbname, const char* stm) {
 	responseWriter.StartObject();
 	/*sqlite */
 	sqlite3* db;
-	int rc, keyIndex;
+	int rc;
 	char *errMsg = 0;
 	cPara cp;
-
-	keyIndex = 0;
 
 	auto dbPath = std::string(DB_DIR) + dbname + ".db";
 
@@ -555,7 +535,7 @@ std::string TV::SQLITE::general(const char* dbname, const char* stm) {
 	}
 
 	cp.data = &responseWriter;
-	cp.ki = keyIndex;
+	cp.ki = 0;
 
 	rc = sqlite3_exec(db, stm, sqlite_callback, &cp, &errMsg);
 

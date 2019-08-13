@@ -123,7 +123,7 @@ namespace Svandex{
 	This method could replace singleton mode and is thread-safe.
 	*/
 #define SVANDEX_STOREDCONTEXT L"Svandex_Implemented_StoredContext"
-#define SVANDEX_BUF_SIZE 256
+#define SVANDEX_BUF_SIZE 1024
 
 	/*
 	WebSocket Class which holds variables related to IWebSocketContext function arguments,

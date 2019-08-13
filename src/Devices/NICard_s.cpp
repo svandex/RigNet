@@ -38,23 +38,23 @@ void NICard_s::get_data_in(int sec){
 std::string NICard_s::return_buffer_json()
 {
     rapidjson::StringBuffer s;
-    rapidjson::Writer<rapidjson::StringBuffer> w(s);
+    rapidjson::Writer<rapidjson::StringBuffer> JsonWriter(s);
 
-    w.StartObject();
-    w.Key("nicard");
-    w.String("success");
+    JsonWriter.StartObject();
+    JsonWriter.Key("nicard");
+    JsonWriter.String("success");
     for (uint32_t index = 1; index <= m_chan_num; index++)
     {
-        w.Key(("channel_" + std::to_string(index)).c_str());
-        w.StartArray();
+        JsonWriter.Key(("channel_" + std::to_string(index)).c_str());
+        JsonWriter.StartArray();
         for (uint32_t index_num = 1; index_num <= m_frq_num; index_num++)
         {
             //TO DO
-            w.Double((*m_data_buf)[m_chan_num*(index_num-1)+index-1]);
+            JsonWriter.Double((*m_data_buf)[m_chan_num*(index_num-1)+index-1]);
         }
-        w.EndArray();
+        JsonWriter.EndArray();
     }
-    w.EndObject();
+    JsonWriter.EndObject();
 
     return s.GetString();
 }

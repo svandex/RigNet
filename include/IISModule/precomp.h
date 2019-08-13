@@ -37,6 +37,11 @@ https://github.com/mysql/mysql-connector-cpp
 #endif
 
 /*
+sqlite header file
+*/
+
+#include "sqlite3.h"
+/*
 Module header file
 */
 #include "RigNetModule.h"

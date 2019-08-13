@@ -36,12 +36,14 @@
 数据中心对性能要求较高不需要显示界面，且主要是开发人员使用，开发人员更习惯使用Linux而不是Windows Server进行开发，Linux上配置环境较方便且有原生的git等工具，且很多的开发库都是面向Linux开发的，便于后期大数据分析方便。
 
 ### 数据库
-数据中心要存储大量数据首选采用大型数据库比如mysql，而试验中心仅仅是存储当日或短时间数据，且有大量数据可能不会被使用，采用sqlite满足需求且不会占用Windows电脑太多资源，方便工程师日常使用其它软件实时分析数据。工程师日常使用的Excel等软件都有很好的插件可以方便利用sqlite中的数据。
+数据中心要存储大量数据首选采用大型数据库比如mysql，而试验中心仅仅是存储当日或短时间数据，且有大量数据可能不会被使用，采用sqlite满足需求且不会占用Windows电脑太多资源，方便工程师日常使用其它软件实时分析数据。
+
+由于sqlite的数据库以db文件形式存在，便于拷贝到公司电脑上，工程师日常使用的Excel等软件都有很好的插件可以方便利用sqlite中的数据。
 
 ### 依赖库
 
 + [tencent/rapidjson](https://github.com/tencent/rapidjson)
-+ [mysql/mysql-connector-cpp](https://github.com/mysql/mysql-connector-cpp)
++ [sqlite/sqlite](https://github.com/sqlite/sqlite)
 + [chronolaw/ngx_cpp_dev](https://github.com/chronolaw/ngx_cpp_dev)
 
 ## 版权说明
