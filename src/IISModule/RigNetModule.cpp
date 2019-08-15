@@ -4,10 +4,8 @@ inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)tr
 	rapidjson::Document resultjson;
 	if (resultjson.Parse(result.c_str()).HasParseError()) {
 		// Set the HTTP status.
-		pHttpContext->GetResponse()->SetStatus(500, "Server Error", 0, E_UNEXPECTED);
 		result = Svandex::json::message(std::to_string(TV::ERROR_JSON_CREAT));
 	}
-
 
 	HRESULT hr = S_OK;
 	//PCSTR pszBuf = "hello";
@@ -115,12 +113,6 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		HTTP protocol
 		*/
 
-		// get url
-		std::map<std::string, int> urls;
-		urls["/login"] = TV_LOGIN;
-		urls["/register"] = TV_REGISTER;
-		urls["/sqlitedata"] = TV_SQLITE_DATA;
-		urls["/exist"] = TV_EXIST;
 
 
 		PCSTR vForwardURL;
@@ -135,25 +127,25 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 
 			try {
 				switch (urls[vForwardURL]) {
-				case TV_LOGIN: {
-					ctvhttp = std::make_shared<TV::CTVHttpLogin>(pHttpContext);
-				}//TV_LOGIN
-				case TV_SQLITE_DATA: {
-					ctvhttp = std::make_shared<TV::CTVHttpData>(pHttpContext);
+				case TV::URL_LOGIN: {
+					ctvhttp = std::make_shared<TV::CTVHttpLogin>(pHttpContext); break;
+				}//URL_LOGIN
+				case TV::URL_SQLITE_DATA: {
+					ctvhttp = std::make_shared<TV::CTVHttpData>(pHttpContext); break;
 				}//TV_SQLITE_DATA
-				case TV_REGISTER: {
-					ctvhttp = std::make_shared<TV::CTVHttpRegister>(pHttpContext);
+				case TV::URL_REGISTER: {
+					ctvhttp = std::make_shared<TV::CTVHttpRegister>(pHttpContext); break;
 				}//TV_REGISTER
-				case TV_EXIST: {
-					ctvhttp = std::make_shared<TV::CTVHttpExist>(pHttpContext);
+				case TV::URL_EXIST: {
+					ctvhttp = std::make_shared<TV::CTVHttpExist>(pHttpContext); break;
 				}//TV_EXIST
+				default: {break; }
 				}
+				ctvhttp->process();
 			}
 			catch (std::exception& e) {
-				return RQ_NOTIFICATION_CONTINUE;
+				httpSendBack(pHttpContext, Svandex::json::message(e.what()));
 			}
-
-			ctvhttp->process();
 		}
 		return RQ_NOTIFICATION_CONTINUE;
 	}
@@ -419,8 +411,7 @@ TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext) {
 	pHttpRequest->ReadEntityBody(m_BufHttpRequest.data(), (DWORD)m_BufHttpRequest.capacity(), FALSE, &cbReceived, &completed);
 
 	if (m_RequestJSON.Parse(m_BufHttpRequest.data()).HasParseError()) {
-		httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_JSON_PARSE)));
-		throw std::exception("json parsing error.");
+		throw std::exception(std::to_string(TV::ERROR_JSON_PARSE).c_str());
 	}
 }
 

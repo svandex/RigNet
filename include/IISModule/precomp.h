@@ -46,11 +46,6 @@ Module header file
 */
 #include "RigNetModule.h"
 
-#define TV_LOGIN 0
-#define TV_REGISTER 1
-#define TV_SQLITE_DATA 2
-#define TV_EXIST 3
-
 #include "winrt/Windows.Foundation.h"
 
 #endif

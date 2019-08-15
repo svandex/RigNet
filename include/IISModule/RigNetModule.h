@@ -4,12 +4,19 @@
 class CTVNet : public CHttpModule
 {
 public:
+	CTVNet() {
+		urls["/login"] = TV::URL_LOGIN;
+		urls["/register"] = TV::URL_REGISTER;
+		urls["/sqlitedata"] = TV::URL_SQLITE_DATA;
+		urls["/exist"] = TV::URL_EXIST;
+	}
 	REQUEST_NOTIFICATION_STATUS OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider);
 	REQUEST_NOTIFICATION_STATUS OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo);
 	REQUEST_NOTIFICATION_STATUS OnReadEntity(IN IHttpContext* pHttpContext, IN IReadEntityProvider* pProvider);
 	REQUEST_NOTIFICATION_STATUS OnExecuteRequestHandler(IN IHttpContext* pHttpContext, IN IHttpEventProvider* pProvider);
 
 	std::promise<BOOL> m_websocket_cont;
+	std::map<std::string, int> urls;
 };
 
 namespace TV {
@@ -22,6 +29,12 @@ constexpr int32_t ERROR_REGISTER_EXIST = 1005;/*User has been registered*/
 
 constexpr int32_t ERROR_LOGIN_NOMEMBER = 2001;
 constexpr int32_t ERROR_LOGIN_PWD = 2002;
+
+//url code
+constexpr int32_t URL_LOGIN = 1;
+constexpr int32_t URL_REGISTER = 2;
+constexpr int32_t URL_SQLITE_DATA = 3;
+constexpr int32_t URL_EXIST = 4;
 
 
 /*
