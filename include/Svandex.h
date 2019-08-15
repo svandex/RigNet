@@ -221,10 +221,11 @@ namespace Svandex{
 #endif
 
 #ifdef SAE_RIGNET
+#define SVANDEX_ERROR "error"
 #define SVANDEX_RAPIDJSON "rapidjson"
 #define SVANDEX_STL "stl"
 	namespace json {
-		std::string ErrMess(const char* _Mess, const char* _Type = SVANDEX_RAPIDJSON);
+		std::string message(std::string _Mess, const char* _Type = SVANDEX_ERROR);
 	}
 #endif
 

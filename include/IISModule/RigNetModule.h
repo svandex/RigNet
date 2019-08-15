@@ -1,4 +1,5 @@
 #include "precomp.h"
+
 // Create the module class.
 class CTVNet : public CHttpModule
 {
@@ -12,6 +13,17 @@ public:
 };
 
 namespace TV {
+// error code table
+constexpr int32_t ERROR_JSON_PARSE = 1001;/*http request JSON parsing error*/
+constexpr int32_t ERROR_SQLITE_EXEC = 1002;/*sqlite engine exeution error*/
+constexpr int32_t ERROR_UUID_CREAT = 1003;/*uuid error in server*/
+constexpr int32_t ERROR_JSON_CREAT = 1004;/*JSON construction error within server*/
+constexpr int32_t ERROR_REGISTER_EXIST = 1005;/*User has been registered*/
+
+constexpr int32_t ERROR_LOGIN_NOMEMBER = 2001;
+constexpr int32_t ERROR_LOGIN_PWD = 2002;
+
+
 /*
 This class is used to read settings from setting.json file
 */
@@ -83,4 +95,58 @@ This class is used to read settings from setting.json file
 	namespace SQLITE {
 		std::string general(const char* db, const char* stm);
 	}
+
+	class CTVHttp {
+	public:
+		CTVHttp(IHttpContext* pHttpContext);
+		virtual void process() = 0;
+	protected:
+		rapidjson::Document m_RequestJSON;
+		std::vector<char> m_BufHttpRequest;
+		IHttpContext* m_pHttpContext;
+	};
+
+	class CTVHttpLogin :public TV::CTVHttp {
+	public:
+		CTVHttpLogin(IHttpContext* pHttpContext) :TV::CTVHttp(pHttpContext){
+
+		}
+		void process();
+	private:
+		rapidjson::Document m_ResultJSON;
+		std::wstringstream m_dbstm;
+	};
+
+	class CTVHttpExist :public TV::CTVHttp {
+	public:
+		CTVHttpExist(IHttpContext* pHttpContext) :TV::CTVHttp(pHttpContext){
+
+		}
+		void process();
+	private:
+		rapidjson::Document m_ResultJSON;
+		std::wstringstream m_dbstm;
+	};
+
+	class CTVHttpRegister :public TV::CTVHttp {
+	public:
+		CTVHttpRegister(IHttpContext* pHttpContext) :TV::CTVHttp(pHttpContext){
+
+		}
+		void process();
+	private:
+		rapidjson::Document m_ResultJSON;
+		std::wstringstream m_dbstm;
+	};
+
+	class CTVHttpData :public TV::CTVHttp {
+	public:
+		CTVHttpData(IHttpContext* pHttpContext) :TV::CTVHttp(pHttpContext){
+
+		}
+		void process();
+	private:
+		rapidjson::Document m_ResultJSON;
+		std::wstringstream m_dbstm;
+	};
 }

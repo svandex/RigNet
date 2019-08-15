@@ -1,6 +1,14 @@
 ﻿#include "precomp.h"
 
 inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)try {
+	rapidjson::Document resultjson;
+	if (resultjson.Parse(result.c_str()).HasParseError()) {
+		// Set the HTTP status.
+		pHttpContext->GetResponse()->SetStatus(500, "Server Error", 0, E_UNEXPECTED);
+		result = Svandex::json::message(std::to_string(TV::ERROR_JSON_CREAT));
+	}
+
+
 	HRESULT hr = S_OK;
 	//PCSTR pszBuf = "hello";
 	PCSTR pszBuf = result.c_str();
@@ -21,7 +29,7 @@ inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)tr
 	// Insert the data chunk into the response.
 	hr = pHttpContext->GetResponse()->WriteEntityChunks(
 		&dataChunk, 1, FALSE, TRUE, &cbSent, &completed);
-	if (FAILED(hr))
+	if (FAILED(hr)||resultjson.HasMember("error"))
 	{
 		// Set the HTTP status.
 		pHttpContext->GetResponse()->SetStatus(500, "Server Error", 0, hr);
@@ -34,9 +42,7 @@ catch (std::exception &e) {
 	IHttpResponse *pHttpResponse = pHttpContext->GetResponse();
 	HRESULT hr = E_UNEXPECTED;
 	pHttpResponse->SetStatus(500, e.what(), 0, hr);
-
-	// End additional processing.
-	return RQ_NOTIFICATION_FINISH_REQUEST;
+	return hr;
 }
 
 REQUEST_NOTIFICATION_STATUS CTVNet::OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider)
@@ -122,196 +128,32 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		hr = pHttpContext->GetServerVariable("HTTP_URL", &vForwardURL, &vPcchValueLength);
 
 		if (urls.find(vForwardURL) != urls.end()) {
-			//Read Request entity to bufHttpRequest
-			DWORD cbReceived = 0;
-			BOOL completed;
-			std::vector<char> bufHttpRequest;
-			bufHttpRequest.resize(SVANDEX_BUF_SIZE);
-			hr = pHttpRequest->ReadEntityBody(bufHttpRequest.data(), (DWORD)bufHttpRequest.capacity(), FALSE, &cbReceived, &completed);
-			//TODO: Read only once, but it is not enough
-
-			/*
-			rapidjson parsing
-			*/
-			rapidjson::Document requestJson;
-			if (requestJson.Parse(bufHttpRequest.data()).HasParseError()) {
-				httpSendBack(pHttpContext, Svandex::json::ErrMess("Request JSON parse failed"));
-				return RQ_NOTIFICATION_CONTINUE;
-			}
-
 			if (sqlite3_threadsafe() != 0) {
 				sqlite3_config(SQLITE_CONFIG_SERIALIZED);
-				/*
-				httpSendBack(pHttpContext, Svandex::json::ErrMess("SQLITE THREAD UNSAFE", "sqlite"));
+			}
+			std::shared_ptr<TV::CTVHttp> ctvhttp;
+
+			try {
+				switch (urls[vForwardURL]) {
+				case TV_LOGIN: {
+					ctvhttp = std::make_shared<TV::CTVHttpLogin>(pHttpContext);
+				}//TV_LOGIN
+				case TV_SQLITE_DATA: {
+					ctvhttp = std::make_shared<TV::CTVHttpData>(pHttpContext);
+				}//TV_SQLITE_DATA
+				case TV_REGISTER: {
+					ctvhttp = std::make_shared<TV::CTVHttpRegister>(pHttpContext);
+				}//TV_REGISTER
+				case TV_EXIST: {
+					ctvhttp = std::make_shared<TV::CTVHttpExist>(pHttpContext);
+				}//TV_EXIST
+				}
+			}
+			catch (std::exception& e) {
 				return RQ_NOTIFICATION_CONTINUE;
-				*/
 			}
 
-			/*
-			SQL statement
-			*/
-			std::wstringstream db_stm;
-
-			switch (urls[vForwardURL]) {
-			case TV_LOGIN: {
-				if (requestJson.HasMember("id") && requestJson.HasMember("password")) {
-					//db_stm << L"select `角色`,`密码`,`会话标识`,date_format(`最近更新`,'%Y-%m-%d %T') from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
-					db_stm << L"select `角色`,`密码`,`会话标识`,`最近更新` from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
-					rapidjson::Document rcDOC;
-					auto result = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str()).c_str();
-					if (rcDOC.Parse(result).HasParseError() || !rcDOC.HasMember("0")) {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("sqlite execution failed", "login"));
-						break;
-					}
-
-					/**/
-					if (std::strcmp(rcDOC["0"][1].GetString(), requestJson["password"].GetString()) == 0) {
-						//login successfully
-						std::istringstream s_ssId(rcDOC["0"][2].GetString());
-						if (s_ssId.str() == "expired") {//add uuid as session id
-							auto uuid = Svandex::tools::GetUUID();
-							if (uuid == "") {
-								httpSendBack(pHttpContext, Svandex::json::ErrMess("Server cannot create uuid.", "login"));
-							}
-							else {
-								db_stm.clear();
-								db_stm.str(L"");
-								db_stm << L"update `0用户信息` set `会话标识`=\""
-									<< uuid.c_str()
-									<< L"\",`最近更新`=\"" << Svandex::tools::GetCurrentTimeFT().c_str()
-									<< L"\" where `工号`=\"" << requestJson["id"].GetString() << "\"";
-								TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
-
-								httpSendBack(pHttpContext, "{\"sessionId\":\"" + uuid + "\",\"roleId\":\"" +
-									std::string(rcDOC["0"][0].GetString()) + "\"}");
-							}
-						}
-						else {
-							//last modified time
-							std::istringstream s_lmtime(rcDOC["0"][3].GetString());
-							std::tm t = {};
-							s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
-							auto retval = std::difftime(std::time(nullptr), std::mktime(&t));
-							if (retval > SVANDEX_SESSION_EXPIRED) {//>10min, update last modified time
-								db_stm.clear();
-								db_stm.str(L"");
-								db_stm << L"update `0用户信息` set `最近更新`=\""
-									<< Svandex::tools::GetCurrentTimeFT().c_str()
-									<< L"\" where `工号`=\"" << requestJson["id"].GetString() << "\"";
-								TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
-							}
-							httpSendBack(pHttpContext, "{\"sessionId\":\"" + std::string(rcDOC["0"][2].GetString()) + "\",\"roleId\":\"" + std::string(rcDOC["0"][0].GetString()) + "\",\"userId\":\"" + requestJson["id"].GetString() + "\"}");
-						}
-					}
-					else {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("sqlite parse failed", "login"));
-					}
-				}
-				else {
-					httpSendBack(pHttpContext, Svandex::json::ErrMess("No Id or Password key", "login"));
-				}
-				break;
-			}//TV_LOGIN
-			case TV_SQLITE_DATA: {
-				if (requestJson.HasMember("sessionId")) {
-					std::wstringstream db_stm;
-					db_stm << L"select `最近更新` from `0用户信息` where `会话标识`=\"" << requestJson["sessionId"].GetString() << "\"";
-
-					rapidjson::Document rcDoc;
-					auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
-					if (rcDoc.Parse(rcStr.c_str()).HasParseError()) {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("sqlite parse failed", "data"));
-						break;
-					}
-
-					if (!rcDoc.HasMember("0")) {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("sqlite return empty", "data"));
-						break;
-					}
-					std::istringstream s_lmtime(rcDoc["0"][0].GetString());
-					std::tm t = {};
-					s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
-					if (std::difftime(std::time(nullptr), std::mktime(&t)) > SVANDEX_SESSION_EXPIRED) {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("Session Expired.", "data"));
-						break;
-					}
-					/*
-					add comtype to json
-					*/
-					requestJson.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), requestJson.GetAllocator());
-					rapidjson::StringBuffer buffer;
-					rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
-					requestJson.Accept(tmpWriter);
-					auto requestJsonStr = buffer.GetString();
-					memcpy_s(bufHttpRequest.data(), bufHttpRequest.size(), requestJsonStr, std::strlen(requestJsonStr));
-
-					auto result = TV::main(bufHttpRequest);
-					httpSendBack(pHttpContext, result);
-				}
-				else if (requestJson.HasMember("readonly")) {
-					/*
-					add comtype to json
-					*/
-					requestJson.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), requestJson.GetAllocator());
-					rapidjson::StringBuffer buffer;
-					rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
-					requestJson.Accept(tmpWriter);
-					auto requestJsonStr = buffer.GetString();
-					memcpy_s(bufHttpRequest.data(), bufHttpRequest.size(), requestJsonStr, std::strlen(requestJsonStr));
-
-					auto result = TV::main(bufHttpRequest);
-					httpSendBack(pHttpContext, result);
-				}
-				else {
-					httpSendBack(pHttpContext, Svandex::json::ErrMess("Parse Error or SessionId key not found", "data"));
-				}
-				break;
-			}//TV_SQLITE_DATA
-			case TV_REGISTER: {
-				if (requestJson.HasMember("id") && requestJson.HasMember("password")
-					&& requestJson.HasMember("role") && requestJson.HasMember("contact")
-					&& requestJson.HasMember("name")) {
-					//database selection
-					std::wstringstream db_stm;
-					db_stm << L"select * from `0用户信息` where `工号`=\"" << requestJson["id"].GetString() << "\"";
-					auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
-
-					rapidjson::Document rcDoc;
-					if (rcDoc.Parse(rcStr.c_str()).HasMember("0")) {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("User Has Been Registered.", "register"));
-					}
-					else {
-						db_stm.clear();
-						db_stm.str(L"");
-						db_stm << L"insert into `0用户信息` values(\'"
-							<< winrt::to_hstring(requestJson["role"].GetString()).c_str() << "\',\'"
-							<< requestJson["id"].GetString() << "\',\'"
-							<< requestJson["password"].GetString() << "\',\'"
-							<< requestJson["contact"].GetString() << "\',"
-							<< "0,\'expired\',\'"
-							<< Svandex::tools::GetCurrentTimeFT().c_str() << "\',\'"
-							<< winrt::to_hstring(requestJson["name"].GetString()).c_str()
-							<< "\')";
-						TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
-					}
-				}
-			}//TV_REGISTER
-			case TV_EXIST: {
-				if (requestJson.HasMember("userId")) {
-					std::wstringstream db_stm;
-					db_stm << L"select * from `0用户信息` where `工号`=\"" << requestJson["userId"].GetString() << "\"";
-					auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
-
-					rapidjson::Document rcDoc;
-					if (rcDoc.Parse(rcStr.c_str()).HasMember("0")) {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("1", "result"));
-					}
-					else {
-						httpSendBack(pHttpContext, Svandex::json::ErrMess("0", "result"));
-					}
-				}
-			}//TV_EXIST
-			}
+			ctvhttp->process();
 		}
 		return RQ_NOTIFICATION_CONTINUE;
 	}
@@ -336,7 +178,7 @@ WebSocketWritLine.insert(WebSocketWritLine.end(), WebSocketReadLine.begin(), Web
 std::string TV::main(std::vector<char>& _websocket_in) try {
 	_websocket_in.shrink_to_fit();
 	if (_websocket_in.size() == 0) {
-		return Svandex::json::ErrMess("request body is empty", "HTTP");
+		return Svandex::json::message("request body is empty", "HTTP");
 	}
 	static std::map<std::string, std::function<std::string(const rapidjson::Document && msg)>> rig_dispatchlist_map;
 
@@ -354,7 +196,7 @@ std::string TV::main(std::vector<char>& _websocket_in) try {
 	auto string = std::string(temp);
 	if (json_msg.Parse(_websocket_in.data()).HasParseError())
 	{
-		return Svandex::json::ErrMess("not a json object");
+		return Svandex::json::message("not a json object");
 	}
 
 	if (json_msg.HasMember("comtype"))
@@ -366,17 +208,17 @@ std::string TV::main(std::vector<char>& _websocket_in) try {
 		}
 		else
 		{
-			return Svandex::json::ErrMess("command type member should exist.");
+			return Svandex::json::message("command type member should exist.");
 		}
 	}
 	else
 	{
-		return Svandex::json::ErrMess("json has no member named comtype.");
+		return Svandex::json::message("json has no member named comtype.");
 	}
 }
 catch (std::exception &e)
 {
-	return Svandex::json::ErrMess(e.what(), SVANDEX_STL);
+	return Svandex::json::message(e.what(), SVANDEX_STL);
 }
 
 #ifdef USE_MYSQL
@@ -476,9 +318,7 @@ catch (std::exception &e)
 
 /*
 sqlite implementation
- */
 
-/*
 class used to support sending parameters 
  */
 class cPara {
@@ -515,7 +355,7 @@ std::string TV::sqlite(const rapidjson::Document &&msg) try
 }
 catch (std::exception &e)
 {
-	return Svandex::json::ErrMess(e.what());
+	return Svandex::json::message(e.what());
 }
 
 std::string TV::SQLITE::general(const char* dbname, const char* stm) {
@@ -536,7 +376,7 @@ std::string TV::SQLITE::general(const char* dbname, const char* stm) {
 	//rc = sqlite3_open_v2(dbPath.c_str(), &db, SQLITE_OPEN_NOMUTEX, NULL);
 	if (rc)
 	{
-		return Svandex::json::ErrMess("Failed To Open Sqlite Database");
+		return Svandex::json::message("Failed To Open Sqlite Database");
 	}
 
 	cp.data = &responseWriter;
@@ -567,3 +407,182 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnReadEntity(IN IHttpContext *pHttpContext, 
 
 	return RQ_NOTIFICATION_CONTINUE;
 }
+
+TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext) {
+	m_pHttpContext = pHttpContext;
+
+	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
+
+	DWORD cbReceived = 0;
+	BOOL completed;
+	m_BufHttpRequest.resize(SVANDEX_BUF_SIZE);
+	pHttpRequest->ReadEntityBody(m_BufHttpRequest.data(), (DWORD)m_BufHttpRequest.capacity(), FALSE, &cbReceived, &completed);
+
+	if (m_RequestJSON.Parse(m_BufHttpRequest.data()).HasParseError()) {
+		httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_JSON_PARSE)));
+		throw std::exception("json parsing error.");
+	}
+}
+
+void TV::CTVHttpLogin::process() {
+	if (m_RequestJSON.HasMember("id") && m_RequestJSON.HasMember("password")) {
+		//m_dbstm << L"select `角色`,`密码`,`会话标识`,date_format(`最近更新`,'%Y-%m-%d %T') from `0用户信息` where `工号`=\"" << m_RequestJSON["id"].GetString() << "\"";
+		m_dbstm << L"select `角色`,`密码`,`会话标识`,`最近更新` from `0用户信息` where `工号`=\"" << m_RequestJSON["id"].GetString() << "\"";
+		rapidjson::Document rcDOC;
+		auto result = TV::SQLITE::general("labwireless", winrt::to_string(m_dbstm.str()).c_str()).c_str();
+		if (rcDOC.Parse(result).HasParseError() || !rcDOC.HasMember("0")) {
+			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_SQLITE_EXEC)));
+			return;
+		}
+
+		/**/
+		if (std::strcmp(rcDOC["0"][1].GetString(), m_RequestJSON["password"].GetString()) == 0) {
+			//login successfully
+			std::istringstream s_ssId(rcDOC["0"][2].GetString());
+			if (s_ssId.str() == "expired") {//add uuid as session id
+				auto uuid = Svandex::tools::GetUUID();
+				if (uuid == "") {
+					httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_UUID_CREAT)));
+				}
+				else {
+					m_dbstm.clear();
+					m_dbstm.str(L"");
+					m_dbstm << L"update `0用户信息` set `会话标识`=\""
+						<< uuid.c_str()
+						<< L"\",`最近更新`=\"" << Svandex::tools::GetCurrentTimeFT().c_str()
+						<< L"\" where `工号`=\"" << m_RequestJSON["id"].GetString() << "\"";
+					TV::SQLITE::general("labwireless", winrt::to_string(m_dbstm.str()).c_str());
+
+					httpSendBack(m_pHttpContext, "{\"sessionId\":\"" + uuid + "\",\"roleId\":\"" +
+						std::string(rcDOC["0"][0].GetString()) + "\"}");
+				}
+			}
+			else {
+				//last modified time
+				std::istringstream s_lmtime(rcDOC["0"][3].GetString());
+				std::tm t = {};
+				s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
+				auto retval = std::difftime(std::time(nullptr), std::mktime(&t));
+				if (retval > SVANDEX_SESSION_EXPIRED) {//>10min, update last modified time
+					m_dbstm.clear();
+					m_dbstm.str(L"");
+					m_dbstm << L"update `0用户信息` set `最近更新`=\""
+						<< Svandex::tools::GetCurrentTimeFT().c_str()
+						<< L"\" where `工号`=\"" << m_RequestJSON["id"].GetString() << "\"";
+					TV::SQLITE::general("labwireless", winrt::to_string(m_dbstm.str()).c_str());
+				}
+				httpSendBack(m_pHttpContext, "{\"sessionId\":\"" + std::string(rcDOC["0"][2].GetString()) + "\",\"roleId\":\"" + std::string(rcDOC["0"][0].GetString()) + "\",\"userId\":\"" + m_RequestJSON["id"].GetString() + "\"}");
+			}
+		}
+		else {
+			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_LOGIN_PWD)));
+		}
+	}
+	else {
+		httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_LOGIN_NOMEMBER)));
+	}
+}
+
+void TV::CTVHttpExist::process() {
+	if (m_RequestJSON.HasMember("userId")) {
+		std::wstringstream db_stm;
+		db_stm << L"select * from `0用户信息` where `工号`=\"" << m_RequestJSON["userId"].GetString() << "\"";
+		auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
+
+		rapidjson::Document rcDoc;
+		if (rcDoc.Parse(rcStr.c_str()).HasMember("0")) {
+			httpSendBack(m_pHttpContext, Svandex::json::message("1", "result"));
+		}
+		else {
+			httpSendBack(m_pHttpContext, Svandex::json::message("0", "result"));
+		}
+	}
+
+}
+
+void TV::CTVHttpRegister::process() {
+	if (m_RequestJSON.HasMember("id") && m_RequestJSON.HasMember("password")
+		&& m_RequestJSON.HasMember("role") && m_RequestJSON.HasMember("contact")
+		&& m_RequestJSON.HasMember("name")) {
+		//database selection
+		m_dbstm << L"select * from `0用户信息` where `工号`=\"" << m_RequestJSON["id"].GetString() << "\"";
+		auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(m_dbstm.str()).c_str());
+
+		rapidjson::Document rcDoc;
+		if (rcDoc.Parse(rcStr.c_str()).HasMember("0")) {
+			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_REGISTER_EXIST)));
+		}
+		else {
+			m_dbstm.clear();
+			m_dbstm.str(L"");
+			m_dbstm << L"insert into `0用户信息` values(\'"
+				<< winrt::to_hstring(m_RequestJSON["role"].GetString()).c_str() << "\',\'"
+				<< m_RequestJSON["id"].GetString() << "\',\'"
+				<< m_RequestJSON["password"].GetString() << "\',\'"
+				<< m_RequestJSON["contact"].GetString() << "\',"
+				<< "0,\'expired\',\'"
+				<< Svandex::tools::GetCurrentTimeFT().c_str() << "\',\'"
+				<< winrt::to_hstring(m_RequestJSON["name"].GetString()).c_str()
+				<< "\')";
+			TV::SQLITE::general("labwireless", winrt::to_string(m_dbstm.str()).c_str());
+		}
+	}
+}
+
+void TV::CTVHttpData::process() {
+	if (m_RequestJSON.HasMember("sessionId")) {
+		std::wstringstream db_stm;
+		db_stm << L"select `最近更新` from `0用户信息` where `会话标识`=\"" << m_RequestJSON["sessionId"].GetString() << "\"";
+
+		rapidjson::Document rcDoc;
+		auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(db_stm.str()).c_str());
+		if (rcDoc.Parse(rcStr.c_str()).HasParseError()) {
+			httpSendBack(m_pHttpContext, Svandex::json::message("sqlite parse failed", "data"));
+		}
+
+		if (!rcDoc.HasMember("0")) {
+			httpSendBack(m_pHttpContext, Svandex::json::message("sqlite return empty", "data"));
+		}
+		std::istringstream s_lmtime(rcDoc["0"][0].GetString());
+		std::tm t = {};
+		s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
+		if (std::difftime(std::time(nullptr), std::mktime(&t)) > SVANDEX_SESSION_EXPIRED) {
+			httpSendBack(m_pHttpContext, Svandex::json::message("Session Expired.", "data"));
+		}
+		/*
+		add comtype to json
+		*/
+		m_RequestJSON.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), m_RequestJSON.GetAllocator());
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
+		m_RequestJSON.Accept(tmpWriter);
+		auto m_RequestJSONStr = buffer.GetString();
+		memcpy_s(m_BufHttpRequest.data(), m_BufHttpRequest.size(), m_RequestJSONStr, std::strlen(m_RequestJSONStr));
+
+		auto result = TV::main(m_BufHttpRequest);
+		httpSendBack(m_pHttpContext, result);
+	}
+	else if (m_RequestJSON.HasMember("readonly")) {
+		/*
+		add comtype to json
+		*/
+		m_RequestJSON.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), m_RequestJSON.GetAllocator());
+		rapidjson::StringBuffer buffer;
+		rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
+		m_RequestJSON.Accept(tmpWriter);
+		auto m_RequestJSONStr = buffer.GetString();
+		memcpy_s(m_BufHttpRequest.data(), m_BufHttpRequest.size(), m_RequestJSONStr, std::strlen(m_RequestJSONStr));
+
+		auto result = TV::main(m_BufHttpRequest);
+		httpSendBack(m_pHttpContext, result);
+	}
+	else {
+		httpSendBack(m_pHttpContext, Svandex::json::message("Parse Error or SessionId key not found", "data"));
+	}
+
+}
+
+
+
+
+

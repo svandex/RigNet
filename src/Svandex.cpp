@@ -222,6 +222,6 @@ void WINAPI Svandex::functor::WritAsyncCompletion(HRESULT hr, PVOID completionCo
 void WINAPI Svandex::functor::fWebSocketNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
 }
 
-std::string Svandex::json::ErrMess(const char* _Mess, const char* _Type) {
-	return (std::string("{\"") + _Type + "\":\"" + _Mess + "\"}");
+std::string Svandex::json::message(std::string _Mess, const char* _Type) {
+	return (std::string("{\"") + _Type + "\":" + _Mess + "}");
 }

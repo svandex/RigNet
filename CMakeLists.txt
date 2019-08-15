@@ -32,23 +32,16 @@ link_directories(
 
 set(CMAKE_MFC_FLAG 2)#2 means shared mfc library
 
-#Windows Service
+# Windows Service
+# Get rigt-test data from NI card or Simens PLC, use IPC to interact with IIS Module
 #add_executable(RigNetService src/RigNetService/CppWindowsService.cpp src/RigNetService/RigNetService.cpp src/RigNetService/ServiceBase.cpp src/RigNetService/ServiceInstaller.cpp src/Svandex.cpp)
 #target_compile_definitions(RigNetService PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
 #target_compile_options(RigNetService PRIVATE "/permissive")
 #set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
 #target_link_libraries(RigNetService mysqlcppconn8 pathcch rpcrt4)
 
-#sqlite 
-#add_library(sqlite3 SHARED thirdparty/sqlite/sqlite3.c)
-#target_compile_definitions(sqlite3 PRIVATE SQLITE_ENABLE_FTS4 PRIVATE SQLITE_ENABLE_FTS5 PRIVATE SQLITE_ENABLE_RTREE PRIVATE SQLITE_ENABLE_COLUMN_METADATA PRIVATE SQLITE_ENABLE_DESERIALIZE PRIVATE SQLITE_ENABLE_SERIALIZE)
-#target_compile_options(sqlite3 PRIVATE "/Gz")
-#target_link_options(sqlite3 PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-#target_link_options(sqlite3 PRIVATE "/GUARD:CF")
-#target_link_options(sqlite3 PRIVATE "/VERSION:1.00")
-#target_link_options(sqlite3 PRIVATE "/DEF:sqlite3.def")
-
-#IIS MODULE
+# IIS MODULE
+# Provide HTTP service
 add_library(RigNetModule SHARED src/IISModule/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp)
 target_compile_definitions(RigNetModule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
 target_compile_options(RigNetModule PRIVATE "/Gz")

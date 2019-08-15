@@ -14,6 +14,8 @@ features includeing:
 
 3. mysql xdevapi support
 
+4. sqlite api support
+
 
 */
 #include "precomp.h"
