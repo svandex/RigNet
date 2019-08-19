@@ -51,7 +51,7 @@ namespace Svandex{
     //get current path of executable file
     std::string GetCurrentPath();
 	std::string GetCurrentTimeFT();
-    std::string GetEnvVariable(const char* pEnvName);
+    std::vector<char*> GetEnvVariable(const char* pEnvName);
 	std::string GetUUID();
 
 	/*
@@ -222,6 +222,7 @@ namespace Svandex{
 
 #ifdef SAE_RIGNET
 #define SVANDEX_ERROR "error"
+#define SVANDEX_SUCCESS "success"
 #define SVANDEX_RAPIDJSON "rapidjson"
 #define SVANDEX_RUNTIME "IIS"
 #define SVANDEX_STL "stl"

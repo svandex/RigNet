@@ -42,14 +42,20 @@ std::string Svandex::tools::GetCurrentTimeFT() {
 	return str;
 }
 
-std::string Svandex::tools::GetEnvVariable(const char *pEnvName)
+std::vector<char*> Svandex::tools::GetEnvVariable(const char* pEnvName)
 {
-	std::vector<std::string> vbuf;
+	std::vector<char*> vbuf;
 	char* buf[MAX_PATH];
 	size_t buf_num;
 	_dupenv_s(buf, &buf_num, pEnvName);
-	auto return_value = std::string(*buf);
-	return std::string(*buf);
+	if (buf_num > 0) {
+		vbuf.resize(buf_num);
+		for (size_t index = 0; index < buf_num; buf_num++) {
+			vbuf[index] = buf[index];
+		}
+	}
+
+	return vbuf;
 }
 
 std::string Svandex::tools::GetUUID() {
