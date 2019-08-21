@@ -380,7 +380,7 @@ std::string TV::SQLITE::general(const char* dbname, const char* stm) {
 	//rc = sqlite3_open_v2(dbPath.c_str(), &db, SQLITE_OPEN_NOMUTEX, NULL);
 	if (rc)
 	{
-		return Svandex::json::message("Failed To Open Sqlite Database");
+		return Svandex::json::message(std::to_string(TV::ERROR_SQLITE_OPEN));
 	}
 
 	cp.data = &responseWriter;
@@ -394,7 +394,7 @@ std::string TV::SQLITE::general(const char* dbname, const char* stm) {
 
 	if (rc != SQLITE_OK)
 	{
-		rs = errMsg;
+		rs = std::string("{\"error\":") + std::to_string(TV::ERROR_SQLITE_EMPTY) + ",\"sqlexecmsg\":\"" + errMsg + "\"}";
 		sqlite3_free(errMsg);
 	}
 	else
@@ -532,6 +532,7 @@ void TV::CTVHttpRegister::process() {
 		rapidjson::Document rcDoc;
 		if (rcDoc.Parse(rcStr.c_str()).HasMember("0")) {
 			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_REGISTER_EXIST)));
+			return;
 		}
 		else {
 			m_dbstm.clear();
@@ -560,46 +561,47 @@ void TV::CTVHttpData::process() {
 
 		rapidjson::Document rcDoc;
 		auto rcStr = TV::SQLITE::general("labwireless", winrt::to_string(m_dbstm.str()).c_str());
+		if (rcDoc.Parse(rcStr.c_str()).HasParseError()) {
+			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_JSON_PARSE)));
+			return;
+		}
+
 		if (!rcDoc.HasMember("0")) {
 			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_SQLITE_EMPTY)));
+			return;
 		}
 		std::istringstream s_lmtime(rcDoc["0"][0].GetString());
 		std::tm t = {};
 		s_lmtime >> std::get_time(&t, "%Y-%m-%d %T");
 		if (std::difftime(std::time(nullptr), std::mktime(&t)) > SVANDEX_SESSION_EXPIRED) {
 			httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_SESSION_EXPIRED)));
+			return;
 		}
-		/*
-		add comtype to json
-		*/
-		m_RequestJSON.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), m_RequestJSON.GetAllocator());
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
-		m_RequestJSON.Accept(tmpWriter);
-		auto m_RequestJSONStr = buffer.GetString();
-		memcpy_s(m_HttpRequestBuffer.data(), m_HttpRequestBuffer.size(), m_RequestJSONStr, std::strlen(m_RequestJSONStr));
-
-		auto result = TV::main(m_HttpRequestBuffer);
-		httpSendBack(m_pHttpContext, result);
 	}
 	else if (m_RequestJSON.HasMember("readonly")) {
-		/*
-		add comtype to json
-		*/
-		m_RequestJSON.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), m_RequestJSON.GetAllocator());
-		rapidjson::StringBuffer buffer;
-		rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
-		m_RequestJSON.Accept(tmpWriter);
-		auto m_RequestJSONStr = buffer.GetString();
-		memcpy_s(m_HttpRequestBuffer.data(), m_HttpRequestBuffer.size(), m_RequestJSONStr, std::strlen(m_RequestJSONStr));
-
-		auto result = TV::main(m_HttpRequestBuffer);
-		httpSendBack(m_pHttpContext, result);
 	}
 	else {
 		httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_JSON_KEY)));
+		return;
 	}
 
+	/*
+	add comtype to json
+	*/
+	m_RequestJSON.GetObjectW().AddMember("comtype", rapidjson::Value("sqlite"), m_RequestJSON.GetAllocator());
+	rapidjson::StringBuffer buffer;
+	rapidjson::Writer<rapidjson::StringBuffer> tmpWriter(buffer);
+	m_RequestJSON.Accept(tmpWriter);
+	auto m_RequestJSONStr = buffer.GetString();
+	m_HttpRequestBuffer.resize(std::strlen(m_RequestJSONStr));
+	memcpy_s(m_HttpRequestBuffer.data(), m_HttpRequestBuffer.size(), m_RequestJSONStr, std::strlen(m_RequestJSONStr));
+
+	auto result = TV::main(m_HttpRequestBuffer);
+	if (result.empty()) {
+		httpSendBack(m_pHttpContext, Svandex::json::message(std::to_string(TV::ERROR_SQLITE_EMPTY)));
+		return;
+	}
+	httpSendBack(m_pHttpContext, result);
 }
 
 void TV::CTVHttpUpload::process() {

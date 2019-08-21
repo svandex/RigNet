@@ -51,7 +51,7 @@ namespace Svandex{
     //get current path of executable file
     std::string GetCurrentPath();
 	std::string GetCurrentTimeFT();
-    std::vector<char*> GetEnvVariable(const char* pEnvName);
+	std::vector<std::string> GetEnvVariable(const char* pEnvName);
 	std::string GetUUID();
 
 	/*

@@ -16,6 +16,7 @@ namespace TV {
 	constexpr int32_t ERROR_LOGIN_PWD = 4007;/*password error when logging in*/
 	constexpr int32_t ERROR_HTTP_CTYPE = 4008;/*content type not suppored*/
 	constexpr int32_t ERROR_NO_ENV = 4009;/*TV_PROJECT_NAME env variable not setup*/
+	constexpr int32_t ERROR_SQLITE_OPEN= 4010;/*TV_PROJECT_NAME env variable not setup*/
 
 	constexpr int32_t ERROR_SESSION_EXPIRED = 4444;/*action time expired*/
 

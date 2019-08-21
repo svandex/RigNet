@@ -42,16 +42,16 @@ std::string Svandex::tools::GetCurrentTimeFT() {
 	return str;
 }
 
-std::vector<char*> Svandex::tools::GetEnvVariable(const char* pEnvName)
+std::vector<std::string> Svandex::tools::GetEnvVariable(const char* pEnvName)
 {
-	std::vector<char*> vbuf;
+	std::vector<std::string> vbuf;
 	char* buf[MAX_PATH];
 	size_t buf_num;
 	_dupenv_s(buf, &buf_num, pEnvName);
 	if (buf_num > 0) {
 		vbuf.resize(buf_num);
 		for (size_t index = 0; index < buf_num; buf_num++) {
-			vbuf[index] = buf[index];
+			vbuf.push_back(buf[index]);
 		}
 	}
 
