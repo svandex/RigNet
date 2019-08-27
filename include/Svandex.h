@@ -227,7 +227,7 @@ namespace Svandex{
 #define SVANDEX_RUNTIME "IIS"
 #define SVANDEX_STL "stl"
 	namespace json {
-		std::string message(std::string _Mess, const char* _Type = SVANDEX_ERROR);
+		std::string message(std::string _Mess, const char* _Type = SVANDEX_ERROR, const char* _Extra = "");
 	}
 #endif
 

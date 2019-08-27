@@ -3,7 +3,9 @@
 
 //#define WIN32_LEAN_AND_MEAN
 
-constexpr const char* DB_DIR = "C:\\db\\";
+//STL
+#include <algorithm>
+#include <fstream>
 
 //Project header files
 #include "Svandex.h"
@@ -41,6 +43,13 @@ sqlite header file
 */
 
 #include "sqlite3.h"
+
+/*
+libjpeg-turbo header
+*/
+
+#include "jpeglib.h"
+
 /*
 Module header file
 */

@@ -14,6 +14,7 @@ set(VCPKG_INSTALL_DIR "${VCPKG_ROOT}/installed/x64-windows/")
 
 find_package(RapidJSON CONFIG REQUIRED)
 find_package(sqlite3 CONFIG REQUIRED)
+find_package(JPEG REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
@@ -23,6 +24,7 @@ include_directories(
     $ENV{NIEXTCCOMPILERSUPP}/include
     ${RAPIDJSON_INCLUDE_DIRS}
     ${VCPKG_INSTALL_DIR}/include
+	${JPEG__INCLUDE_DIR}
     )
 
 link_directories(
@@ -49,4 +51,4 @@ target_link_options(RigNetModule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
 target_link_options(RigNetModule PRIVATE "/GUARD:CF")
 target_link_options(RigNetModule PRIVATE "/VERSION:1.00")
 target_link_options(RigNetModule PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(RigNetModule PUBLIC pathcch rpcrt4 windowsapp sqlite3)
+target_link_libraries(RigNetModule PUBLIC pathcch rpcrt4 windowsapp sqlite3 ${JPEG_LIBRARIES})

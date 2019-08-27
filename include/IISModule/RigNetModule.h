@@ -17,6 +17,7 @@ namespace TV {
 	constexpr int32_t ERROR_HTTP_CTYPE = 4008;/*content type not suppored*/
 	constexpr int32_t ERROR_NO_ENV = 4009;/*TV_PROJECT_NAME env variable not setup*/
 	constexpr int32_t ERROR_SQLITE_OPEN= 4010;/*TV_PROJECT_NAME env variable not setup*/
+	constexpr int32_t ERROR_JPEG_FORMAT = 4011;/*uploaded file format is incorrect*/
 
 	constexpr int32_t ERROR_SESSION_EXPIRED = 4444;/*action time expired*/
 
@@ -24,7 +25,10 @@ namespace TV {
 	constexpr int32_t ERROR_JSON_CREAT = 5001;/*JSON construction error within server*/
 	constexpr int32_t ERROR_UUID_CREAT = 5002;/*uuid error in server*/
 	constexpr int32_t ERROR_URL_NOEXIST = 5003;/*URL doesn't exist*/
+	constexpr int32_t ERROR_JSON_CREAT_SEND = 5004;/*JSON creation error when sending payload*/
 
+	/*debug*/
+	constexpr int32_t ERROR_DEBUG = 9999;
 
 	// success code table
 	constexpr int32_t SUCCESS_ACTION = 2001;
@@ -47,11 +51,8 @@ namespace TV {
 			}
 		};
 
-		void tvReadEntity(IHttpContext* pHttpContext, std::vector<char> &buf) {
-			auto cLength = tvGetServerVariable("CONTENT_LENGTH", pHttpContext);
-			buf.resize(std::atoi(cLength.c_str()));
-			pHttpContext->GetRequest()->ReadEntityBody(buf.data(), std::atoi(cLength.c_str()), FALSE, &m_tempDWORD);
-		};
+		template<typename T>
+		void tvReadEntity(IHttpContext* pHttpContext, std::vector<T>& buf);
 	private:
 		PCSTR m_tempcsTR;
 		DWORD m_tempDWORD;
@@ -108,26 +109,22 @@ This class is used to read settings from setting.json file
 	Via WebSocket
 	*/
 
-	/*
-	TVNetMain, as functor for initialization of websocket
-	*/
+	/* TVNetMain, as functor for initialization of websocket */
 	HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
 
-	/*
-	Following Three functions used for responding comtype in each request json struct
-	*/
+	/* Following Three functions used for responding comtype in each request json struct */
 	std::string main(std::vector<char> &msg);
 #ifdef USE_MYSQL
 	std::string mysql(const rapidjson::Document &&msg);
 #endif
 	std::string sqlite(const rapidjson::Document &&msg);
 
-	/*
-	Inner implementaton of sqlite query
-	*/
+	/* Inner implementaton of sqlite query */
 	namespace SQLITE {
 		std::string general(const char* db, const char* stm);
 	}
+
+	bool isJPEG(std::string savepath);
 
 	class CTVHttp {
 	public:
@@ -135,8 +132,10 @@ This class is used to read settings from setting.json file
 		virtual void process() = 0;
 	protected:
 		rapidjson::Document m_RequestJSON;
-		std::vector<char> m_HttpRequestBuffer;
+		std::vector<char> m_HttpRequestJSONBuffer;
 		IHttpContext* m_pHttpContext;
+		rapidjson::Document m_ResultJSON;
+		std::wstringstream m_dbstm;
 	};
 
 	class CTVHttpLogin :public TV::CTVHttp {
@@ -145,9 +144,6 @@ This class is used to read settings from setting.json file
 
 		}
 		void process();
-	private:
-		rapidjson::Document m_ResultJSON;
-		std::wstringstream m_dbstm;
 	};
 
 	class CTVHttpExist :public TV::CTVHttp {
@@ -156,9 +152,6 @@ This class is used to read settings from setting.json file
 
 		}
 		void process();
-	private:
-		rapidjson::Document m_ResultJSON;
-		std::wstringstream m_dbstm;
 	};
 
 	class CTVHttpRegister :public TV::CTVHttp {
@@ -167,9 +160,6 @@ This class is used to read settings from setting.json file
 
 		}
 		void process();
-	private:
-		rapidjson::Document m_ResultJSON;
-		std::wstringstream m_dbstm;
 	};
 
 	class CTVHttpData :public TV::CTVHttp {
@@ -178,9 +168,6 @@ This class is used to read settings from setting.json file
 
 		}
 		void process();
-	private:
-		rapidjson::Document m_ResultJSON;
-		std::wstringstream m_dbstm;
 	};
 
 	class CTVHttpUpload :public TV::CTVHttp {
@@ -189,9 +176,6 @@ This class is used to read settings from setting.json file
 
 		}
 		void process();
-	private:
-		rapidjson::Document m_ResultJSON;
-		std::wstringstream m_dbstm;
 	};
 }
 
@@ -213,3 +197,4 @@ public:
 	std::promise<BOOL> m_websocket_cont;
 	std::map<std::string, int> urls;
 };
+

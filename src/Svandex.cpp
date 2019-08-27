@@ -45,16 +45,21 @@ std::string Svandex::tools::GetCurrentTimeFT() {
 std::vector<std::string> Svandex::tools::GetEnvVariable(const char* pEnvName)
 {
 	std::vector<std::string> vbuf;
-	char* buf[MAX_PATH];
+	char* buf;
 	size_t buf_num;
-	_dupenv_s(buf, &buf_num, pEnvName);
+	errno_t err = _dupenv_s(&buf, &buf_num, pEnvName);
+	if (err) {
+		return vbuf;
+	}
 	if (buf_num > 0) {
-		vbuf.resize(buf_num);
-		for (size_t index = 0; index < buf_num; buf_num++) {
-			vbuf.push_back(buf[index]);
+		std::stringstream ss(buf);
+		std::string sn;
+		while (std::getline(ss, sn, ';')) {
+			vbuf.push_back(sn);
 		}
 	}
 
+	free(buf);
 	return vbuf;
 }
 
@@ -228,6 +233,11 @@ void WINAPI Svandex::functor::WritAsyncCompletion(HRESULT hr, PVOID completionCo
 void WINAPI Svandex::functor::fWebSocketNULL(HRESULT hr, PVOID completionContext, DWORD cbio, BOOL fUTF8Encoded, BOOL fFinalFragment, BOOL fClose) {
 }
 
-std::string Svandex::json::message(std::string _Mess, const char* _Type) {
-	return (std::string("{\"") + _Type + "\":" + _Mess + "}");
+std::string Svandex::json::message(std::string _Mess, const char* _Type, const char* _Extra) {
+	if (std::strcmp(_Extra, "") == 0) {
+		return (std::string("{\"") + _Type + "\":" + _Mess + "}");
+	}
+	else {
+		return (std::string("{\"") + _Type + "\":" + _Mess + ",\"description\":\"" + _Extra + "\"}");
+	}
 }
