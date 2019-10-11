@@ -453,8 +453,8 @@ TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext) try{
 
 	auto cType = uti.tvGetServerVariable("CONTENT_TYPE", pHttpContext);
 
-	if (cType.find("application/json") != cType.npos){
-//	if (cType.compare("application/json") == 0) {
+	if (cType.find("application/json") != cType.npos) {
+		//	if (cType.compare("application/json") == 0) {
 		uti.tvReadEntity<char>(pHttpContext, m_HttpRequestJSONBuffer);
 
 		if (m_RequestJSON.Parse(m_HttpRequestJSONBuffer.data()).HasParseError()) {
@@ -462,42 +462,13 @@ TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext) try{
 		}
 	}
 	else if (cType.find("image/jpeg") != cType.npos) {
-		/*read http body and write to file*/
-		std::vector<byte> httpbody;
-		uti.tvReadEntity<byte>(pHttpContext, httpbody);
-
-		/*create a json object and write some infomation to database*/
-		auto envValue = Svandex::tools::GetEnvVariable(TV_PROJECT_NAME);
-		if (envValue.size() > 0) {
-			auto file_uuid = Svandex::tools::GetUUID();
-			auto saved_path = std::string(envValue[0]) + "\\img\\" + file_uuid + ".jpg";
-
-			/* store body to a file*/
-			std::basic_fstream<byte> uploadFile(saved_path, std::fstream::binary | std::fstream::out);
-			if (uploadFile.is_open()) {
-				uploadFile.read(httpbody.data(), httpbody.size());
-				uploadFile.flush();
-				uploadFile.close();
-			}
-			else {
-				throw std::exception("\"cannot create file.\"");
-			}
-			/*write uuid to problem table in database*/
-
-			if (!TV::isJPEG(saved_path)) {
-				httpSendBack(pHttpContext, "{\"result\":\"saved file format error.\"}");
-			}
-			
-		}
-		else {
-			throw std::exception(std::to_string(TV::ERROR_NO_ENV).c_str());
-		}
+		//continue to CTVHttpUpload::process
 	}
 	else {
 		throw std::exception(std::to_string(TV::ERROR_HTTP_CTYPE).c_str());
 	}
 }
-catch (std::exception& e) {
+catch (std::exception & e) {
 	httpSendBack(pHttpContext, e.what());
 }
 
@@ -663,6 +634,37 @@ void TV::CTVHttpData::process() {
 }
 
 void TV::CTVHttpUpload::process() {
+	TV::Utility uti;
+	/*read http body and write to file*/
+	std::vector<byte> httpbody;
+	uti.tvReadEntity<byte>(m_pHttpContext, httpbody);
+
+	/*create a json object and write some infomation to database*/
+	auto envValue = Svandex::tools::GetEnvVariable(TV_PROJECT_NAME);
+	if (envValue.size() > 0) {
+		auto file_uuid = Svandex::tools::GetUUID();
+		auto saved_path = std::string(envValue[0]) + "\\img\\" + file_uuid + ".jpg";
+
+		/* store body to a file*/
+		std::basic_fstream<byte> uploadFile(saved_path, std::ios::binary | std::ios::out);
+		if (uploadFile.is_open()) {
+			uploadFile.write(httpbody.data(), httpbody.size());
+			uploadFile.flush();
+			uploadFile.close();
+		}
+		else {
+			throw std::exception("\"cannot create file.\"");
+		}
+		/*write uuid to problem table in database*/
+
+		if (!TV::isJPEG(saved_path)) {
+			httpSendBack(m_pHttpContext, "{\"result\":\"saved file format error.\"}");
+		}
+	}
+	else {
+		throw std::exception(std::to_string(TV::ERROR_NO_ENV).c_str());
+	}
+
 }
 
 bool TV::isJPEG(std::string savepath) {
