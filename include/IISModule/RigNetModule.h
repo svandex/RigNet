@@ -1,7 +1,11 @@
 #include "precomp.h"
+#include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Data.Json.h"
 
 #define TV_PROJECT_NAME "TVNET"
 // Create the module class.
+
+using namespace winrt::Windows::Data::Json;
 
 namespace TV {
 	// error code table
@@ -26,6 +30,8 @@ namespace TV {
 	constexpr int32_t ERROR_UUID_CREAT = 5002;/*uuid error in server*/
 	constexpr int32_t ERROR_URL_NOEXIST = 5003;/*URL doesn't exist*/
 	constexpr int32_t ERROR_JSON_CREAT_SEND = 5004;/*JSON creation error when sending payload*/
+	constexpr int32_t ERROR_REGEX = 5005;/*regex error*/
+	constexpr int32_t ERROR_UPLOAD = 5006;/*upload http body format error*/
 
 	/*debug*/
 	constexpr int32_t ERROR_DEBUG = 9999;
@@ -105,12 +111,43 @@ This class is used to read settings from setting.json file
 		static deletePTR del;
 	};
 
+/*
+This class is used to parse multidata
+*/
+	class MultiDataParser {
+	public:
+		MultiDataParser() = delete;
+		MultiDataParser(std::vector<char>&, std::string);
+
+		//extract parameter, if there exist images then store them into file directory and write to database
+		JsonObject execute();
+
+		//if construtor succeed
+		bool m_isConstruted = false;
+	private:
+		//http body
+		std::vector<char> m_body;
+		//boundary string
+		std::string m_boundary;
+
+		//positions for boundaries
+		std::vector<uint64_t> m_boundaries;
+		//positions vector for \r\n
+		std::vector<uint64_t> m_rnPositions;
+
+		//positions vector for element which is after \r\n\r\n
+		std::vector<uint64_t> m_elePositions;
+		std::vector<uint64_t> m_elePositionEnds;
+
+		std::string storeImage(uint32_t);
+	};
+
 	/*
 	Via WebSocket
 	*/
 
 	/* TVNetMain, as functor for initialization of websocket */
-	HRESULT TVNetMain(std::vector<char> &WebSocketReadLine, std::vector<char> &WebSocketWritLine);
+	HRESULT TVNetMain(std::vector<char>& WebSocketReadLine, std::vector<char>& WebSocketWritLine);
 
 	/* Following Three functions used for responding comtype in each request json struct */
 	std::string main(std::vector<char> &msg);

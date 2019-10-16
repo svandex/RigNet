@@ -1,5 +1,7 @@
 ﻿#include "precomp.h"
 
+using namespace winrt::Windows::Data::Json;
+
 template<typename T>
 void TV::Utility::tvReadEntity(IHttpContext* pHttpContext, std::vector<T>& buf) {
 	auto cLength = tvGetServerVariable("CONTENT_LENGTH", pHttpContext);
@@ -22,21 +24,23 @@ inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)tr
 			result = Svandex::json::message(std::to_string(TV::ERROR_JSON_CREAT_SEND));
 		}
 	}
-	else if (resultjson.HasMember("error")) {
-		/*resultjson object: if it has `error` member it should be a NUMBER*/
-		if (resultjson["error"].IsString()) {
-			result = std::string("{\"error\":") + std::to_string(TV::ERROR_DEBUG) + ",\"srcmsg\":\"" + resultjson["error"].GetString() + "\"}";
-		}
-		else if (resultjson["error"].IsInt()) {
-			if (resultjson["error"].GetInt() > 4000 && resultjson["error"].GetInt() < 4999) {
-				pHttpContext->GetResponse()->SetStatus(400, "Client Error");
+	else {
+		if (resultjson.HasMember("error")) {
+			/*resultjson object: if it has `error` member it should be a NUMBER*/
+			if (resultjson["error"].IsString()) {
+				result = std::string("{\"error\":") + std::to_string(TV::ERROR_DEBUG) + ",\"srcmsg\":\"" + resultjson["error"].GetString() + "\"}";
 			}
-			else if (resultjson["error"].GetInt() > 5000) {
-				pHttpContext->GetResponse()->SetStatus(500, "Server Error");
+			else if (resultjson["error"].IsInt()) {
+				if (resultjson["error"].GetInt() > 4000 && resultjson["error"].GetInt() < 4999) {
+					pHttpContext->GetResponse()->SetStatus(400, "Client Error");
+				}
+				else if (resultjson["error"].GetInt() > 5000) {
+					pHttpContext->GetResponse()->SetStatus(500, "Server Error");
+				}
 			}
-		}
-		else {
-			result = std::string("{\"error\":") + std::to_string(TV::ERROR_DEBUG) + ",\"srcmsg\":\"PLEASE DEBUG!\"}";
+			else {
+				result = std::string("{\"error\":") + std::to_string(TV::ERROR_DEBUG) + ",\"srcmsg\":\"PLEASE DEBUG!\"}";
+			}
 		}
 	}
 
@@ -443,7 +447,7 @@ void tv_jpeg_exit(j_common_ptr cinfo) {
 	longjmp(g_jpeg_jmp_buf, 1);
 }
 
-TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext) try{
+TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext){
 	m_pHttpContext = pHttpContext;
 
 	IHttpRequest* pHttpRequest = pHttpContext->GetRequest();
@@ -461,15 +465,14 @@ TV::CTVHttp::CTVHttp(IHttpContext* pHttpContext) try{
 			throw std::exception(std::to_string(TV::ERROR_JSON_PARSE).c_str());
 		}
 	}
-	else if (cType.find("image/jpeg") != cType.npos) {
+	else if (cType.find("multipart/form-data") != cType.npos) {
 		//continue to CTVHttpUpload::process
 	}
 	else {
-		throw std::exception(std::to_string(TV::ERROR_HTTP_CTYPE).c_str());
+		JsonObject eNoURL;
+		eNoURL.Insert(L"error", JsonValue::CreateNumberValue(TV::ERROR_HTTP_CTYPE));
+		throw std::exception(winrt::to_string(eNoURL.ToString()).c_str());
 	}
-}
-catch (std::exception & e) {
-	httpSendBack(pHttpContext, e.what());
 }
 
 void TV::CTVHttpLogin::process() {
@@ -633,38 +636,133 @@ void TV::CTVHttpData::process() {
 	httpSendBack(m_pHttpContext, result);
 }
 
+void boundarySegment() {
+	/*
+	key-value: name, offset
+	*/
+}
+
 void TV::CTVHttpUpload::process() {
 	TV::Utility uti;
-	/*read http body and write to file*/
-	std::vector<byte> httpbody;
-	uti.tvReadEntity<byte>(m_pHttpContext, httpbody);
 
-	/*create a json object and write some infomation to database*/
+	/*HTTP Header parsing*/
+	auto cType = uti.tvGetServerVariable("CONTENT_TYPE", m_pHttpContext);
+	//if there exist boundary
+	std::string boundary;
+	if (cType.find("boundary") != std::string::npos) {
+		boundary = cType.substr(cType.find("boundary") + std::strlen("boundary") + 28);
+	}
+
+	/*read http body and find all /r/n positions*/
+	std::vector<char> httpbody;
+	uti.tvReadEntity<char>(m_pHttpContext, httpbody);
+
+	MultiDataParser mtp(httpbody, boundary);
+	JsonObject result = mtp.execute();
+
+	auto restr = TV::SQLITE::general(winrt::to_string(result.GetNamedString(L"database")).c_str(), winrt::to_string(result.GetNamedString(L"statement")).c_str());
+}
+
+TV::MultiDataParser::MultiDataParser(std::vector<char>& httpbody, std::string boundary) {
+	m_body = httpbody;
+	m_boundary = boundary;
+
+	m_boundaries.push_back(0);
+
+	//check /r/n
+	for (auto ci = httpbody.begin(); ci != httpbody.end(); ci++) {
+		if (*ci == '\r' && *(ci + 1) == '\n') {
+			m_rnPositions.push_back(std::distance(httpbody.begin(), ci));
+		}
+	}
+
+	for (auto ci = m_rnPositions.begin(); ci != m_rnPositions.end(); ci++) {
+		if (*(ci + 1) - *ci == 2) {
+			m_elePositions.push_back(*(ci + 1) + 2);
+			m_elePositionEnds.push_back(*(ci + 2) - 1);
+			m_boundaries.push_back(*(ci + 2));
+		}
+	}
+
+	if (m_rnPositions.size() == 0 || m_elePositions.size() == 0) {
+		m_isConstruted = false;
+	}
+	else {
+		m_isConstruted = true;
+	}
+}
+
+JsonObject TV::MultiDataParser::execute() {
+	JsonObject result;
+	if (!m_isConstruted) {
+		return result;
+	}
+
+	//loop each element
+	for (uint32_t index = 0; index < m_elePositions.size(); index++) {
+		for (uint32_t rindex = 0; rindex < m_rnPositions.size(); rindex++) {
+			//within boudaries and before each element
+			if (m_rnPositions[rindex] > m_boundaries[index] && m_rnPositions[rindex] < m_elePositions[index]) {
+				/*
+				if exist image/jpeg, then store element to file directory
+
+				if exist name="",then store name value to JsonObject
+				*/
+				std::vector<char> temp;
+				temp.clear();
+				temp.assign(m_body.cbegin() + m_rnPositions[rindex] + 2, m_body.cbegin() + m_rnPositions[rindex + 1]);
+				if (temp.size() == 0) {
+					continue;
+				}
+
+				std::cmatch cm;
+				if (std::regex_search(temp.data(), cm, std::regex("filename=\".+\""))) {
+					if (cm.size() > 0) {
+						//store image
+						result.Insert(L"image", JsonValue::CreateStringValue(winrt::to_hstring(storeImage(index))));
+						break;
+					}
+				}//regex_match image/jpeg
+				else if (std::regex_search(temp.data(), cm, std::regex("name=\"[^\"]+"))) {
+					std::vector<char> tempEle;
+					tempEle.clear();
+					tempEle.assign(m_body.cbegin() + m_elePositions[index], m_body.cbegin() + m_elePositionEnds[index] + 1);
+					if (tempEle.size() == 0) {
+						tempEle.push_back(' ');
+					}
+					result.Insert(winrt::to_hstring(cm[0].str().substr(6).c_str()), JsonValue::CreateStringValue(winrt::to_hstring(tempEle.data())));
+				}
+			}
+		}
+	}
+	return result;
+}
+
+std::string TV::MultiDataParser::storeImage(uint32_t index) {
 	auto envValue = Svandex::tools::GetEnvVariable(TV_PROJECT_NAME);
+	auto file_uuid = Svandex::tools::GetUUID();
 	if (envValue.size() > 0) {
-		auto file_uuid = Svandex::tools::GetUUID();
 		auto saved_path = std::string(envValue[0]) + "\\img\\" + file_uuid + ".jpg";
 
 		/* store body to a file*/
-		std::basic_fstream<byte> uploadFile(saved_path, std::ios::binary | std::ios::out);
+		std::fstream uploadFile(saved_path, std::ios::binary | std::ios::out);
 		if (uploadFile.is_open()) {
-			uploadFile.write(httpbody.data(), httpbody.size());
+			uploadFile.write(m_body.data() + m_elePositions[index], m_elePositionEnds[index] - m_elePositions[index]);
 			uploadFile.flush();
 			uploadFile.close();
 		}
 		else {
 			throw std::exception("\"cannot create file.\"");
 		}
-		/*write uuid to problem table in database*/
 
 		if (!TV::isJPEG(saved_path)) {
-			httpSendBack(m_pHttpContext, "{\"result\":\"saved file format error.\"}");
+			throw std::exception("\"is not jpeg file.\"");
 		}
 	}
 	else {
 		throw std::exception(std::to_string(TV::ERROR_NO_ENV).c_str());
 	}
-
+	return file_uuid;
 }
 
 bool TV::isJPEG(std::string savepath) {

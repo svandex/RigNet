@@ -4,6 +4,8 @@
 //#define WIN32_LEAN_AND_MEAN
 
 //STL
+#include <iostream>
+#include <regex>
 #include <algorithm>
 #include <fstream>
 
@@ -56,5 +58,6 @@ Module header file
 #include "RigNetModule.h"
 
 #include "winrt/Windows.Foundation.h"
+#include "winrt/Windows.Data.Json.h"
 
 #endif
