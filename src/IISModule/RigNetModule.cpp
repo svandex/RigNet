@@ -636,12 +636,6 @@ void TV::CTVHttpData::process() {
 	httpSendBack(m_pHttpContext, result);
 }
 
-void boundarySegment() {
-	/*
-	key-value: name, offset
-	*/
-}
-
 void TV::CTVHttpUpload::process() {
 	TV::Utility uti;
 
@@ -660,7 +654,16 @@ void TV::CTVHttpUpload::process() {
 	MultiDataParser mtp(httpbody, boundary);
 	JsonObject result = mtp.execute();
 
-	auto restr = TV::SQLITE::general(winrt::to_string(result.GetNamedString(L"database")).c_str(), winrt::to_string(result.GetNamedString(L"statement")).c_str());
+	std::string chm = winrt::to_string(result.GetNamedString(L"statement")).c_str();
+	/*
+	JsonValue::CreateStringValue function accept char * parameter which is ended with \0, 
+	you have to get rid of the \0
+	*/
+	chm.erase(chm.end()-1);
+	chm.shrink_to_fit();
+	auto restr = TV::SQLITE::general(winrt::to_string(result.GetNamedString(L"database")).c_str(), chm.c_str());
+
+	auto index = restr.size();
 }
 
 TV::MultiDataParser::MultiDataParser(std::vector<char>& httpbody, std::string boundary) {
