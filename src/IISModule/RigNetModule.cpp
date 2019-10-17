@@ -134,12 +134,6 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 	}
 	else {/*HTTP*/
 		TV::Utility uti;
-		auto ept = uti.tvGetServerVariable("Expect", pHttpContext);
-		if (ept.find("100-continue") != ept.npos) {
-			pHttpContext->GetResponse()->SetHeader("Expect", "100-continue", (USHORT)std::strlen("100-continue"), TRUE);
-			pHttpContext->GetResponse()->SetStatus(100, "continue");
-			return RQ_NOTIFICATION_CONTINUE;
-		}
 		auto vForwardURL = uti.tvGetServerVariable("HTTP_URL", pHttpContext);
 
 		if (urls.find(vForwardURL) != urls.end()) {
@@ -657,10 +651,12 @@ void TV::CTVHttpUpload::process() {
 	std::string chm = winrt::to_string(result.GetNamedString(L"statement")).c_str();
 	/*
 	JsonValue::CreateStringValue function accept char * parameter which is ended with \0, 
-	you have to get rid of the \0
+	you have to get rid of the \0 for it is processed by Windows::Data::Json to something unpredicable
 	*/
 	chm.erase(chm.end()-1);
 	chm.shrink_to_fit();
+
+	//database processing
 	auto restr = TV::SQLITE::general(winrt::to_string(result.GetNamedString(L"database")).c_str(), chm.c_str());
 
 	auto index = restr.size();
