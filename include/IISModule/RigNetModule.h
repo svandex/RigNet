@@ -220,11 +220,11 @@ class CTVNet : public CHttpModule
 {
 public:
 	CTVNet() {
-		urls["/login"] = TV::URL_LOGIN;
-		urls["/register"] = TV::URL_REGISTER;
-		urls["/sqlitedata"] = TV::URL_SQLITE_DATA;
-		urls["/exist"] = TV::URL_EXIST;
-		urls["/upload"] = TV::URL_UPLOAD;
+		m_urls["/login"] = TV::URL_LOGIN;
+		m_urls["/register"] = TV::URL_REGISTER;
+		m_urls["/sqlitedata"] = TV::URL_SQLITE_DATA;
+		m_urls["/exist"] = TV::URL_EXIST;
+		m_urls["/upload"] = TV::URL_UPLOAD;
 	}
 	REQUEST_NOTIFICATION_STATUS OnSendResponse(IN IHttpContext *pHttpContext, IN ISendResponseProvider *pProvider);
 	REQUEST_NOTIFICATION_STATUS OnAsyncCompletion(IN IHttpContext* pHttpContext, IN DWORD dwNotification, IN BOOL fPostNotification, IN IHttpEventProvider* pProvider, IN IHttpCompletionInfo* pCompletionInfo);
@@ -232,6 +232,7 @@ public:
 	REQUEST_NOTIFICATION_STATUS OnExecuteRequestHandler(IN IHttpContext* pHttpContext, IN IHttpEventProvider* pProvider);
 
 	std::promise<BOOL> m_websocket_cont;
-	std::map<std::string, int> urls;
+	std::map<std::string, int> m_urls;
+	JsonObject m_json_response;
 };
 

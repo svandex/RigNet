@@ -14,6 +14,13 @@ void TV::Utility::tvReadEntity(IHttpContext* pHttpContext, std::vector<T>& buf) 
 	pHttpContext->GetRequest()->ReadEntityBody(buf.data(), std::atoi(cLength.c_str()), FALSE, &m_tempDWORD);
 }
 
+template<typename T>
+void gfModifyJsonResponse(IHttpContext* pHttpContext, JsonObject& jsonobject, T value, winrt::hstring key = L"error") {
+	//if T is int, then it indicate it is a ErrorCode, use "error" as key
+	//if T is const char*, then it indicate it is error description, use "errordesc" as key
+	//if T is other type, compile error
+}
+
 inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)try {
 	rapidjson::Document resultjson;
 	if (resultjson.Parse(result.c_str()).HasParseError()) {
@@ -55,11 +62,9 @@ inline HRESULT httpSendBack(IN IHttpContext *pHttpContext, std::string result)tr
 	DWORD cbSent;
 
 	// Set the chunk to the buffer.
-	dataChunk.FromMemory.pBuffer =
-		(PVOID)pszBuf;
+	dataChunk.FromMemory.pBuffer = (PVOID)pszBuf;
 	// Set the chunk size to the buffer size.
-	dataChunk.FromMemory.BufferLength =
-		(USHORT)strlen(pszBuf);
+	dataChunk.FromMemory.BufferLength = (USHORT)strlen(pszBuf);
 	BOOL completed;
 	// Insert the data chunk into the response.
 	hr = pHttpContext->GetResponse()->WriteEntityChunks(
@@ -136,14 +141,14 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		TV::Utility uti;
 		auto vForwardURL = uti.tvGetServerVariable("HTTP_URL", pHttpContext);
 
-		if (urls.find(vForwardURL) != urls.end()) {
+		if (m_urls.find(vForwardURL) != m_urls.end()) {
 			if (sqlite3_threadsafe() != 0) {
 				sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 			}
 			std::shared_ptr<TV::CTVHttp> ctvhttp;
 
 			try {
-				switch (urls[vForwardURL]) {
+				switch (m_urls[vForwardURL]) {
 				case TV::URL_LOGIN: {
 					ctvhttp = std::make_shared<TV::CTVHttpLogin>(pHttpContext); break;
 				}//URL_LOGIN
@@ -172,6 +177,7 @@ REQUEST_NOTIFICATION_STATUS CTVNet::OnExecuteRequestHandler(IN IHttpContext* pHt
 		else {
 			httpSendBack(pHttpContext, Svandex::json::message((std::to_string(TV::ERROR_URL_NOEXIST).c_str())));
 		}
+		//write entity into reponse body
 	}
 	return RQ_NOTIFICATION_CONTINUE;
 }
@@ -653,7 +659,7 @@ void TV::CTVHttpUpload::process() {
 	JsonValue::CreateStringValue function accept char * parameter which is ended with \0, 
 	you have to get rid of the \0 for it is processed by Windows::Data::Json to something unpredicable
 	*/
-	chm.erase(chm.end()-1);
+	chm.erase(chm.end() - 1);
 	chm.shrink_to_fit();
 
 	//database processing
