@@ -1,0 +1,8 @@
+{
+    "user":"root",
+    "password":"hust123",
+    "server":"localhost",
+    "port":"33060",
+    "database":"tvdemo",
+    "statement":"select item,description from stock"
+}
