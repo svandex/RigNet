@@ -9,7 +9,7 @@ Common Tools Header file, only containing platform headers and STL headers.
 This file won't contain third party dependent file, and only contains what 
 I commonly use in daily work.
 
-It only support Windows right now ,Linux support is on the way.
+It only support Windows right now 
 
 macro:
 
