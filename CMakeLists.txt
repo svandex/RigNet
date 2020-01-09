@@ -18,13 +18,14 @@ set(MYSQLPP_DIR "C:/Users/svandex/Repositories/mysqlpp/")
 find_package(RapidJSON CONFIG REQUIRED)
 find_package(sqlite3 CONFIG REQUIRED)
 find_package(JPEG REQUIRED)
+find_package(SQLiteCpp CONFIG REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include/
-    ${PROJECT_SOURCE_DIR}/include/IISModule
-    ${PROJECT_SOURCE_DIR}/include/mysqlmodule
-    ${PROJECT_SOURCE_DIR}/include/RigNetService
+    ${PROJECT_SOURCE_DIR}/include/iistvmgt
+    ${PROJECT_SOURCE_DIR}/include/iistvmda
+    ${PROJECT_SOURCE_DIR}/include/iismysql
     $ENV{NIEXTCCOMPILERSUPP}/include
     ${RAPIDJSON_INCLUDE_DIRS}
     ${VCPKG_INSTALL_DIR}/include
@@ -54,34 +55,23 @@ set(CMAKE_MFC_FLAG 2)#2 means shared mfc library
 #set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
 #target_link_libraries(RigNetService mysqlcppconn8 pathcch rpcrt4)
 
-# IIS MODULE
-# Provide HTTP service
-add_library(RigNetModule SHARED src/precomp.cpp src/Svandex.cpp src/IISModule/RigNetModule.cpp src/IISModule/RigNetMain.cpp)
-target_compile_definitions(RigNetModule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
-target_compile_options(RigNetModule PRIVATE "/Gz")
-target_link_options(RigNetModule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(RigNetModule PRIVATE "/GUARD:CF")
-target_link_options(RigNetModule PRIVATE "/VERSION:1.00")
-target_link_options(RigNetModule PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(RigNetModule PUBLIC pathcch rpcrt4 windowsapp sqlite3 ${JPEG_LIBRARIES})
-
 # MYSQL MODULE
 # send request with json format to execute mysql engine to query data
-add_library(mysqlmodule SHARED src/precomp.cpp src/mysqlmodule/mysqlmodulec.cpp src/mysqlmodule/main.cpp)
-target_compile_definitions(mysqlmodule PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
-target_compile_options(mysqlmodule PRIVATE "/Gz")
-target_link_options(mysqlmodule PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(mysqlmodule PRIVATE "/GUARD:CF")
-target_link_options(mysqlmodule PRIVATE "/EXPORT:RegisterModule")
+add_library(iistvmysql SHARED src/config.cpp src/iismysql/iismysqlpp.cpp src/iismysql/main.cpp)
+target_compile_definitions(iistvmysql PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
+target_compile_options(iistvmysql PRIVATE "/Gz")
+target_link_options(iistvmysql PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
+target_link_options(iistvmysql PRIVATE "/GUARD:CF")
+target_link_options(iistvmysql PRIVATE "/EXPORT:RegisterModule")
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    target_link_libraries(mysqlmodule PUBLIC pathcch rpcrt4 windowsapp mysqlpp_d libmysql)
+    target_link_libraries(iistvmysql PUBLIC pathcch rpcrt4 windowsapp mysqlpp_d libmysql)
 else()
-    target_link_libraries(mysqlmodule PUBLIC pathcch rpcrt4 windowsapp mysqlpp libmysql)
+    target_link_libraries(iistvmysql PUBLIC pathcch rpcrt4 windowsapp mysqlpp libmysql)
 endif()
 
 # mysql xdevapi module
 # 
-add_library(xdevapi SHARED src/precomp.cpp src/mysqlmodule/xdevapimodule.cpp src/mysqlmodule/main.cpp)
+add_library(xdevapi SHARED src/config.cpp src/iismysql/iisxdevapi.cpp src/iismysql/main.cpp)
 set_property(TARGET xdevapi PROPERTY CXX_STANDARD 17)
 target_compile_definitions(xdevapi PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
 target_compile_options(xdevapi PRIVATE "/Gz")
@@ -89,3 +79,25 @@ target_link_options(xdevapi PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
 target_link_options(xdevapi PRIVATE "/GUARD:CF")
 target_link_options(xdevapi PRIVATE "/EXPORT:RegisterModule")
 target_link_libraries(xdevapi PUBLIC pathcch rpcrt4 windowsapp mysqlcppconn8)
+
+# iistvmgt module
+# 
+add_library(iistvmgt SHARED src/config.cpp src/iistvmgt/iistvmgt.cpp src/iistvmgt/main.cpp src/Svandex.cpp)
+set_property(TARGET iistvmgt PROPERTY CXX_STANDARD 11)
+target_compile_definitions(iistvmgt PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
+target_compile_options(iistvmgt PRIVATE "/Gz")
+target_link_options(iistvmgt PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
+target_link_options(iistvmgt PRIVATE "/GUARD:CF")
+target_link_options(iistvmgt PRIVATE "/EXPORT:RegisterModule")
+target_link_libraries(iistvmgt PUBLIC pathcch rpcrt4 windowsapp SQLiteCpp)
+
+# iistvmda module
+# 
+add_library(iistvmda SHARED src/config.cpp src/iistvmda/iistvmda.cpp src/iistvmda/main.cpp src/Svandex.cpp src/iisutl.cpp)
+set_property(TARGET iistvmda PROPERTY CXX_STANDARD 11)
+target_compile_definitions(iistvmda PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
+target_compile_options(iistvmda PRIVATE "/Gz")
+target_link_options(iistvmda PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
+target_link_options(iistvmda PRIVATE "/GUARD:CF")
+target_link_options(iistvmda PRIVATE "/EXPORT:RegisterModule")
+target_link_libraries(iistvmda PUBLIC pathcch rpcrt4 windowsapp SQLiteCpp)
