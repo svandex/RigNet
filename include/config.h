@@ -63,6 +63,7 @@ libjpeg-turbo header
 Module header file
 */
 #include "iisutl.h"
+#include "iissqlite.h"
 #include "iismysqlpp.h"
 #include "iistvmgt.h"
 #include "iistvmda.h"

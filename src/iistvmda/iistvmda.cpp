@@ -10,6 +10,8 @@ REQUEST_NOTIFICATION_STATUS CIISTVMedia::OnExecuteRequestHandler(IN IHttpContext
     std::vector<char> _request;
     TV::Utility::ReadEntity(pHttpContext,_request);
 
+    //IIS may truncate characters, check the last 2 character
+
     TV::Utility::MultiDataParser mdp(_request, "");
     if(_response.Parse(mdp.metadata().c_str()).HasParseError()){
         _response.AddMember("error", TV::ERROR_JSON_CREAT, _dallocator);

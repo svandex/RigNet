@@ -33,7 +33,9 @@ TV::Utility::MultiDataParser::MultiDataParser(std::vector<char>& _httpbody,std::
         }
     }
 
-    if (m_rnPositions.size() == 0 || m_elePositions.size() == 0)
+    //In certain circumstance IIS may truncate characters
+    //Check if the last /r/n is at the position of httpbody.size()-1
+    if (m_rnPositions.size() == 0 || m_elePositions.size() == 0 || m_rnPositions.back() != _httpbody.size() - 1)
     {
         m_isConstruted = false;
     }
@@ -45,7 +47,7 @@ TV::Utility::MultiDataParser::MultiDataParser(std::vector<char>& _httpbody,std::
 
 std::string TV::Utility::MultiDataParser::metadata(){
     if(!m_isConstruted){
-        return std::string();
+        return std::string("construction failed");
     }
 
     rapidjson::Document _metadata;

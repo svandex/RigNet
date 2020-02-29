@@ -1,4 +1,4 @@
-#include "precomp.h"
+#include "config.h"
 
 REQUEST_NOTIFICATION_STATUS CIISTVManagement::OnExecuteRequestHandler(IN IHttpContext *pHttpContext, IN IHttpEventProvider *pProvider)
 {

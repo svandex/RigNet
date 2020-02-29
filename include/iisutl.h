@@ -72,8 +72,6 @@ private:
 	//positions vector for element which is after \r\n\r\n
 	std::vector<uint64_t> m_elePositions;
 	std::vector<uint64_t> m_elePositionEnds;
-
-	std::string storeImage(uint32_t);
 };
 
 }; // namespace Utility
