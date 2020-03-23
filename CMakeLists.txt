@@ -22,6 +22,7 @@ find_package(SQLiteCpp CONFIG REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/thirdparty/**
     ${PROJECT_SOURCE_DIR}/include/
     ${PROJECT_SOURCE_DIR}/include/iistvmgt
     ${PROJECT_SOURCE_DIR}/include/iistvmda
@@ -48,68 +49,15 @@ link_directories(
 
 set(CMAKE_MFC_FLAG 2)#2 means shared mfc library
 
-# Windows Service
-# Get rigt-test data from NI card or Simens PLC, use IPC to interact with IIS Module
-#add_executable(RigNetService src/RigNetService/CppWindowsService.cpp src/RigNetService/RigNetService.cpp src/RigNetService/ServiceBase.cpp src/RigNetService/ServiceInstaller.cpp src/Svandex.cpp)
-#target_compile_definitions(RigNetService PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
-#target_compile_options(RigNetService PRIVATE "/permissive")
-#set_target_properties(RigNetService PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
-#target_link_libraries(RigNetService mysqlcppconn8 pathcch rpcrt4)
+set(BASIC_FILES "src/HeaderPrecompilation.cpp src/ProjectUtility.cpp src/User.cpp")
 
-# MYSQL MODULE
-# send request with json format to execute mysql engine to query data
-add_library(iistvmysql SHARED src/config.cpp src/iismysql/iismysqlpp.cpp src/iismysql/main.cpp)
-target_compile_definitions(iistvmysql PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
-target_compile_options(iistvmysql PRIVATE "/Gz")
-target_link_options(iistvmysql PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(iistvmysql PRIVATE "/GUARD:CF")
-target_link_options(iistvmysql PRIVATE "/EXPORT:RegisterModule")
-if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    target_link_libraries(iistvmysql PUBLIC pathcch rpcrt4 windowsapp mysqlpp_d libmysql)
-else()
-    target_link_libraries(iistvmysql PUBLIC pathcch rpcrt4 windowsapp mysqlpp libmysql)
-endif()
+add_subdirectory(test)
+enable_testing()
+add_test(NAME TestSQLiteOperation COMMAND SQLiteOperation)
 
-# mysql xdevapi module
-# 
-add_library(xdevapi SHARED src/config.cpp src/iismysql/iisxdevapi.cpp src/iismysql/main.cpp)
-set_property(TARGET xdevapi PROPERTY CXX_STANDARD 17)
-target_compile_definitions(xdevapi PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
-target_compile_options(xdevapi PRIVATE "/Gz")
-target_link_options(xdevapi PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(xdevapi PRIVATE "/GUARD:CF")
-target_link_options(xdevapi PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(xdevapi PUBLIC pathcch rpcrt4 windowsapp mysqlcppconn8)
+add_subdirectory(module/ModuleSQLite)
+add_subdirectory(module/ModuleMySQL)
+add_subdirectory(module/ModuleMediaManagement)
+add_subdirectory(module/ModuleStaffManagement)
 
-# iistvmgt module
-# 
-add_library(iistvmgt SHARED src/config.cpp src/iistvmgt/iistvmgt.cpp src/iistvmgt/main.cpp src/Svandex.cpp)
-set_property(TARGET iistvmgt PROPERTY CXX_STANDARD 11)
-target_compile_definitions(iistvmgt PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN PRIVATE _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
-target_compile_options(iistvmgt PRIVATE "/Gz")
-target_link_options(iistvmgt PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(iistvmgt PRIVATE "/GUARD:CF")
-target_link_options(iistvmgt PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(iistvmgt PUBLIC pathcch rpcrt4 windowsapp SQLiteCpp)
-
-# iistvmda module
-# 
-add_library(iistvmda SHARED src/config.cpp src/iistvmda/iistvmda.cpp src/iistvmda/main.cpp src/Svandex.cpp src/iisutl.cpp)
-set_property(TARGET iistvmda PROPERTY CXX_STANDARD 11)
-target_compile_definitions(iistvmda PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_options(iistvmda PRIVATE "/Gz")
-target_link_options(iistvmda PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(iistvmda PRIVATE "/GUARD:CF")
-target_link_options(iistvmda PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(iistvmda PUBLIC pathcch rpcrt4 windowsapp SQLiteCpp)
-
-# iissqlite module
-# 
-add_library(iissqlite SHARED src/config.cpp src/iissqlite/iissqlite.cpp src/iissqlite/main.cpp src/Svandex.cpp src/iisutl.cpp)
-set_property(TARGET iissqlite PROPERTY CXX_STANDARD 11)
-target_compile_definitions(iissqlite PRIVATE UNICODE PRIVATE _UNICODE PRIVATE WIN32_LEAN_AND_MEAN)
-target_compile_options(iissqlite PRIVATE "/Gz")
-target_link_options(iissqlite PRIVATE "/SUBSYSTEM:CONSOLE,10.00")
-target_link_options(iissqlite PRIVATE "/GUARD:CF")
-target_link_options(iissqlite PRIVATE "/EXPORT:RegisterModule")
-target_link_libraries(iissqlite PUBLIC pathcch rpcrt4 windowsapp SQLiteCpp)
+#add_subdirectory(service/example)
