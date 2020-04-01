@@ -1,3 +1,3 @@
-#include "config.h"
+#include "HeaderPrecompilation.h"
 
 IHttpServer *g_HttpServer = NULL;

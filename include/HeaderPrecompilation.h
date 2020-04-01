@@ -4,8 +4,19 @@
 //#define WIN32_LEAN_AND_MEAN
 #define TV_PROJECT_NAME "TVNET"
 
+/*
+GMIME
+#if defined(_MSC_VER)
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+#include <basetsd.h>
+#include "gmime/gmime.h"
+*/
+
 //STL
 #include <vector>
+#include <array>
 #include <iostream>
 #include <regex>
 #include <algorithm>
@@ -13,8 +24,6 @@
 #include <locale>
 #include <codecvt>
 
-//Project header files
-#include "Svandex.h"
 
 /*
 rapidjson include header files
@@ -34,6 +43,7 @@ https://github.com/tencent/rapidjson
 #pragma pop_macro("min")
 #pragma pop_macro("max")
 */
+
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/writer.h"
@@ -49,6 +59,7 @@ https://github.com/mysql/mysql-connector-cpp
 #include "mysqlx/xdevapi.h"
 */
 
+
 /*
 sqlite header file
 */
@@ -56,15 +67,17 @@ sqlite header file
 #include "SQLiteCpp/SQLiteCpp.h"
 
 /*
-libjpeg-turbo header
-*/
-#include "jpeglib.h"
-
-/*
 #include "RigNetModule.h"
 #include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.Data.Json.h"
 */
+//Project header files
+#include "User.h"
+#include "Svandex.h"
+#include "ProjectUtility.h"
+#include "ModuleBase.h"
+
+
 namespace TV{
 // error code table
 

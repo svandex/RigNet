@@ -5,13 +5,13 @@
 namespace TestValidation
 {
 /*
-数据库相关操作
+数据相关操作
 */
-class UserSQL
+class FetchData
 {
 public:
-    UserSQL() = delete;
-    UserSQL(const UserSQL &) = delete;
+    FetchData() = delete;
+    FetchData(const FetchData &) = delete;
 
 /*
 默认关键字：
@@ -21,6 +21,7 @@ public:
 
 */
     static rapidjson::Document SQL(const char *, const char *,bool&);
+    static rapidjson::Document SQL_Legacy(const char *, const char *, bool &);
 };
 
 /*
@@ -41,6 +42,11 @@ public:
     virtual bool SessionExpired() { return true; };
     //返回json对象
     rapidjson::Document Ret() { return std::move(_response); };
+
+    //调试使用
+    void DocumentCopy(){
+        _response = std::move(_request);
+    }
 
 protected:
     bool validated = false;
@@ -84,7 +90,7 @@ public:
             {
                 validated = true;
                 //获得数据库中上次登录时间
-                lastSessionTime = GetLastSessionTime("工号");
+                lastSessionTime = GetLastSessionTime("id");
             }
             else
             {
@@ -94,6 +100,8 @@ public:
     }
 
     //只要登录就会更新sessionid和lastlogintime
+    bool UpdateSessionId(const char*);
+    bool UpdateLastLoginTime(const char *);
     LoginUser &Login();
 
 protected:
@@ -117,7 +125,7 @@ public:
         {
             validated = true;
             //获得数据库中上次登录时间
-            lastSessionTime = GetLastSessionTime("会话标识");
+            lastSessionTime = GetLastSessionTime("sessionid");
         }
         else
         {

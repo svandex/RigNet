@@ -1,7 +1,5 @@
 #pragma once
 
-#include "RigNet.h"
-
 #define NIVISA_USB
 
 #include "visa.h"

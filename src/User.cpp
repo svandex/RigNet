@@ -1,6 +1,6 @@
 #include "User.h"
 
-rapidjson::Document TestValidation::UserSQL::SQL(const char *dname, const char *stm, bool &status) try
+rapidjson::Document TestValidation::FetchData::SQL(const char *dname, const char *stm, bool &status) try
 {
     rapidjson::Document result;
     result.SetObject();
@@ -70,7 +70,102 @@ rapidjson::Document TestValidation::UserSQL::SQL(const char *dname, const char *
         resultArray.PushBack(one_element.Move(), _dallocator);
 #endif
     }
+
+#ifdef TV_SQLITE_LEGACY_API
+#else
     result.AddMember("sqlite", resultArray.Move(), _dallocator);
+#endif
+
+    status = true;
+    return std::move(result);
+}
+catch (std::exception &e)
+{
+    rapidjson::Document result;
+    result.SetObject();
+    rapidjson::Document::AllocatorType &_dallocator = result.GetAllocator();
+    result.AddMember("errmsg", rapidjson::Value(e.what(), _dallocator), _dallocator);
+    status = false;
+    return std::move(result);
+}
+
+rapidjson::Document TestValidation::FetchData::SQL_Legacy(const char *dname, const char *stm, bool &status) try{
+    rapidjson::Document result;
+    result.SetObject();
+    rapidjson::Document::AllocatorType &_dallocator = result.GetAllocator();
+
+    std::stringstream dataBasePath;
+    dataBasePath << Svandex::tools::GetEnvVariable(TV_PROJECT_NAME)[0] << "\\db\\" << dname << ".db";
+
+    SQLite::Database db(dataBasePath.str().c_str(), SQLite::OPEN_READWRITE);
+    SQLite::Statement query(db, stm);
+
+    size_t _step = 0;
+    rapidjson::Value resultArray(rapidjson::kArrayType);
+    resultArray.SetArray();
+    while (query.executeStep())
+    {
+#define TV_SQLITE_LEGACY_API
+
+#ifdef TV_SQLITE_LEGACY_API
+        rapidjson::Value one_element(rapidjson::kArrayType);
+        for (int index = 0; index < query.getColumnCount(); index++)
+        {
+            switch (query.getColumn(index).getType())
+            {
+            case SQLITE_TEXT:
+            {
+                one_element.PushBack(rapidjson::Value(query.getColumn(index).getString().c_str(), _dallocator).Move(), _dallocator);
+                break;
+            }
+            case SQLITE_INTEGER:
+            {
+                one_element.PushBack(rapidjson::Value(std::to_string(query.getColumn(index).getInt64()).c_str(), _dallocator).Move(), _dallocator);
+                break;
+            }
+            case SQLITE_FLOAT:
+            {
+                one_element.PushBack(rapidjson::Value(std::to_string(query.getColumn(index).getDouble()).c_str(), _dallocator).Move(), _dallocator);
+                break;
+            }
+            default:
+            {
+                one_element.PushBack(rapidjson::Value(""), _dallocator);
+            }
+            break;
+            }
+        }
+        result.AddMember(rapidjson::Value(std::to_string(_step).c_str(), _dallocator), one_element.Move(), _dallocator);
+        _step++;
+#else
+        rapidjson::Value one_element(rapidjson::kObjectType);
+        for (int index = 0; index < query.getColumnCount(); index++)
+        {
+            switch (query.getColumn(index).getType())
+            {
+            case SQLITE_TEXT :
+                one_element.AddMember(rapidjson::Value(query.getColumnName(index), _dallocator), rapidjson::Value(query.getColumn(index).getText(), _dallocator), _dallocator);
+                break;
+            case SQLITE_INTEGER:
+                one_element.AddMember(rapidjson::Value(query.getColumnName(index), _dallocator), rapidjson::Value(query.getColumn(index).getInt64()).Move(), _dallocator);
+                break;
+            case SQLITE_FLOAT:
+                one_element.AddMember(rapidjson::Value(query.getColumnName(index), _dallocator), rapidjson::Value(query.getColumn(index).getDouble()).Move(), _dallocator);
+                break;
+            default:
+                one_element.AddMember(rapidjson::Value(query.getColumnName(index), _dallocator), rapidjson::Value(""), _dallocator);
+                break;
+            }
+        }
+        resultArray.PushBack(one_element.Move(), _dallocator);
+#endif
+    }
+
+#ifdef TV_SQLITE_LEGACY_API
+#else
+    result.AddMember("sqlite", resultArray.Move(), _dallocator);
+#endif
+
     status = true;
     return std::move(result);
 }
@@ -93,6 +188,8 @@ TestValidation::BaseUser::BaseUser(const char *json)
     {
         throw std::logic_error("BaseUser Constrution Error!");
     }
+
+    validated = true;
 }
 
 bool TestValidation::BaseUser::Existence()
@@ -105,10 +202,10 @@ bool TestValidation::BaseUser::Existence()
     if (_request.HasMember("id"))
     {
         std::stringstream stm;
-        stm << "select * where '工号'='" << _request["id"].GetString() << "'";
+        stm << "select * from `userinfo` where `id`='" << _request["id"].GetString() << "'";
         bool status;
-        auto result = TestValidation::UserSQL::SQL("management", stm.str().c_str(), status);
-        if (result.MemberCount() == 0)
+        auto result = TestValidation::FetchData::SQL("management", stm.str().c_str(), status);
+        if (!status || result["sqlite"].GetArray().Size() == 0)
         {
             return false;
         }
@@ -158,19 +255,14 @@ TestValidation::LoginUser &TestValidation::LoginUser::Login()
 
     //判断账号密码是否正确
     std::stringstream stm;
-    stm << "select `密码` from `用户信息` where \'工号\'=\'" << _request["id"].GetString() << "\'";
+    stm << "select password from userinfo where id=\'" << _request["id"].GetString() << "\'";
     bool status;
-    auto result = TestValidation::UserSQL::SQL("management", stm.str().c_str(), status);
+    auto result = TestValidation::FetchData::SQL("management", stm.str().c_str(), status);
 
     //更新登录历史记录
-    if (std::strcmp(result["result"][0][0].GetString(), _request["password"].GetString()) == 0)
+    if (result["sqlite"].GetArray().Size() == 1 && std::strcmp(result["sqlite"][0]["password"].GetString(), _request["password"].GetString()) == 0)
     {
-        auto uuid = Svandex::tools::GetUUID();
-        std::stringstream updatestream;
-        updatestream << "update `用户信息` set `会话标识`=\"" << uuid.c_str() << "\",`最近更新`=\'" << Svandex::tools::GetCurrentTimeFT().c_str() << "\' where `工号`=\'" << _request["id"].GetString() << "\'";
-
-        bool status;
-        auto result = TestValidation::UserSQL::SQL("management", stm.str().c_str(), status);
+        bool status = UpdateSessionId("id");
 
         if (!status)
         {
@@ -182,24 +274,28 @@ TestValidation::LoginUser &TestValidation::LoginUser::Login()
             _response.AddMember("status", true, _dallocator);
             _response.AddMember("message", "登录成功", _dallocator);
         }
+    }else{
+        _response.AddMember("status", false, _dallocator);
+        _response.AddMember("message", "密码错误", _dallocator);
+        return *this;
     }
 
     return *this;
 }
 
-time_t TestValidation::LoginUser::GetLastSessionTime(const char *id)
+time_t TestValidation::LoginUser::GetLastSessionTime(const char *field)
 {
     bool status;
     std::stringstream stm;
-    stm << "select `最近更新` from `用户信息` where \'" << id << "\' =\'" << _request[id].GetString() << "\'";
-    auto result = TestValidation::UserSQL::SQL("management", stm.str().c_str(), status);
-    if (!status)
+    stm << "select * from userinfo where " << field << " =\'" << _request[field].GetString() << "\'";
+    auto result = TestValidation::FetchData::SQL("management", stm.str().c_str(), status);
+    if (!status || result["sqlite"].GetArray().Size() == 0)
     {
         return 0;
     }
     else
     {
-        std::istringstream lst{result["sqlite"][0]["最近更新"].GetString()};
+        std::istringstream lst{result["sqlite"][0]["lastupdatetime"].GetString()};
         if (lst.str() == "expired")
         {
             return std::time(nullptr);
@@ -208,6 +304,25 @@ time_t TestValidation::LoginUser::GetLastSessionTime(const char *id)
         lst >> std::get_time(&t, "%Y-%m-%d %T");
         return std::mktime(&t);
     }
+}
+
+bool TestValidation::LoginUser::UpdateSessionId(const char* field){
+    auto uuid = Svandex::tools::GetUUID();
+    std::stringstream updatestream;
+    updatestream << "update `userinfo` set `sessionid`=\'" << uuid.c_str() << "\' where " << field << "= \'" << _request[field].GetString() << "\'";
+
+    bool status;
+    TestValidation::FetchData::SQL("management", updatestream.str().c_str(), status);
+    return status;
+}
+
+bool TestValidation::LoginUser::UpdateLastLoginTime(const char* field){
+    std::stringstream updatestream;
+    updatestream << "update userinfo set `lastupdatetime`=\'" << Svandex::tools::GetCurrentTimeFT().c_str() << "\' where " << field << "= \'" << _request[field].GetString() << "\'";
+
+    bool status;
+    TestValidation::FetchData::SQL("management", updatestream.str().c_str(), status);
+    return status;
 }
 
 TestValidation::RegisterUser &TestValidation::RegisterUser::Register()
@@ -223,7 +338,7 @@ TestValidation::RegisterUser &TestValidation::RegisterUser::Register()
     {
         //用户不存在
         std::stringstream stm;
-        stm << "insert into `用户信息` values(\'"
+        stm << "insert into `userinfo` values(\'"
             << _request["role"].GetString() << "\',\'"
             << _request["id"].GetString() << "\',\'"
             << _request["password"].GetString() << "\',\'"
@@ -234,8 +349,8 @@ TestValidation::RegisterUser &TestValidation::RegisterUser::Register()
             << "\')";
 
         bool status;
-        auto result = TestValidation::UserSQL::SQL("management", stm.str().c_str(), status);
-        if (result.Size() == 0)
+        auto result = TestValidation::FetchData::SQL("management", stm.str().c_str(), status);
+        if (result["sqlite"].GetArray().Size() == 0)
         {
             _response.AddMember("status", true, _dallocator);
             _response.AddMember("message", "register succeed.", _dallocator);
@@ -268,7 +383,7 @@ TestValidation::DataUser &TestValidation::DataUser::Data()
     }
 
     bool status;
-    auto result = TestValidation::UserSQL::SQL(_request["database"].GetString(), _request["statement"].GetString(), status);
+    auto result = TestValidation::FetchData::SQL(_request["database"].GetString(), _request["statement"].GetString(), status);
 
     if (!status)
     {
@@ -277,6 +392,7 @@ TestValidation::DataUser &TestValidation::DataUser::Data()
     }
     else
     {
+        _response.AddMember("data", rapidjson::Value(result["sqlite"], _dallocator), _dallocator);
         _response.AddMember("status", true, _dallocator);
         _response.AddMember("message", "数据返回成功", _dallocator);
     }

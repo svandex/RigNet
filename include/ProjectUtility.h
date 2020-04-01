@@ -2,79 +2,67 @@
 #define __PROJECTUTILITY_H__
 #include "HeaderPrecompilation.h"
 
-namespace TV
+namespace TestValidation
 {
-namespace Utility
+enum ChunkType
 {
-static std::string GetServerVariable(const char *vName, IHttpContext *pHttpContext)
-{
-    PCSTR _pcstr;
-    DWORD _dword;
-    if (pHttpContext->GetServerVariable(vName, &_pcstr, &_dword) == S_OK)
-    {
-        return std::string(_pcstr);
-    }
-    else
-    {
-        return "";
-    }
+	Normal,
+	File,
+	EndOfChunk
 };
 
-template <typename T>
-void ReadEntity(IHttpContext *pHttpContext, std::vector<T> &buf)
-{
-    DWORD _dword;
-    auto cLength = GetServerVariable("CONTENT_LENGTH", pHttpContext);
-    if (std::is_signed<T>::value)
-    {
-        buf.resize(std::atoi(cLength.c_str()) + 1);
-    }
-    else
-    {
-        buf.resize(std::atoi(cLength.c_str()));
-    }
-    pHttpContext->GetRequest()->ReadEntityBody(buf.data(), std::atoi(cLength.c_str()), FALSE, &_dword);
-}
-
-/*
-This class is used to parse multidata
-*/
-class MultiDataParser
+class Chunk
 {
 public:
-	MultiDataParser() = delete;
-	MultiDataParser(std::vector<char> &, std::string);
+	Chunk() = delete;
+	Chunk(const Chunk &) = delete;
 
-	//extract parameter
-    std::string metadata();
+	//初始位置指针，不删除该指针
+	//该指针一定是在Chunk析构之前一直存在
+	Chunk(void *, unsigned long);
 
-    //store element
-    bool store(size_t index);
+	//数据指针
+	void *data();
 
-    //whether parsing successfully
-    bool constructed(){
-        return m_isConstruted;
-    }
+	//数据大小
+	unsigned long size()
+	{
+		return _size_of_data;
+	}
+
+	//元信息
+	rapidjson::Value metadata();
+
+	//类型
+	ChunkType type;
 
 private:
-    //if construtor succeed
-	bool m_isConstruted = false;
-	//http body
-	std::vector<char> m_body;
-	//boundary string
-	std::string m_boundary;
-
-	//positions for boundaries
-	std::vector<uint64_t> m_boundaries;
-	//positions vector for \r\n
-	std::vector<uint64_t> m_rnPositions;
-
-	//positions vector for element which is after \r\n\r\n
-	std::vector<uint64_t> m_elePositions;
-	std::vector<uint64_t> m_elePositionEnds;
+	//chunk大小
+	unsigned long _size_of_chunk = 0;
+	//元信息开始位置偏移量
+	unsigned long _sof_metadata = 0;
+	//元信息结束位置偏移量
+	unsigned long _eof_metadata = 0;
+	//数据大小
+	unsigned long _size_of_data = 0;
 };
 
-}; // namespace Utility
-} // namespace TV
+class ChunkParser
+{
+public:
+	ChunkParser() = delete;
+	ChunkParser(const ChunkParser &) = delete;
+	ChunkParser(void *, unsigned long);
+
+	rapidjson::Document metadata();
+
+	//将文件存储到特定路径下
+	bool store(size_t, const char *);
+
+private:
+	std::vector<Chunk> _vector_of_chunk;
+};
+
+} // namespace TestValidation
 
 #endif

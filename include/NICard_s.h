@@ -1,6 +1,5 @@
 #pragma once
 
-#include "RigNet.h"
 #include "NIDAQmx.h"
 
 /*NICard class that implemented by using nidaqmx*/
