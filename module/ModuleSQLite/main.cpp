@@ -1,4 +1,4 @@
-#include "config.h"
+#include "ModuleSQLite.h"
 
 // Create the module's class factory.
 class CTVNetFactory : public IHttpModuleFactory
@@ -53,6 +53,6 @@ __stdcall RegisterModule(
     // Set the request notifications and exit.
     return pModuleInfo->SetRequestNotifications(
 		new CTVNetFactory,
-		RQ_EXECUTE_REQUEST_HANDLER,// | RQ_SEND_RESPONSE,
+        RQ_EXECUTE_REQUEST_HANDLER | RQ_PRE_EXECUTE_REQUEST_HANDLER, // | RQ_SEND_RESPONSE,
         0);
 }
